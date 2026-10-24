@@ -144,12 +144,113 @@ function relativeUpdated(updatedAt: string, language: Language) {
 function makeLotIcon(lot: ParkingLot, selected: boolean) {
   const status = statusFor(lot);
   const icon = L.divIcon({
-    className: `lot-pin lot-pin--${status}${selected ? ' lot-pin--selected' : ''}`,
-    html: `<span class="lot-pin__body"><span class="lot-pin__number">${Math.max(0, lot.free_spots)}</span></span>`,
-    iconSize: [48, 48],
-    iconAnchor: [20, 38],
+    className: 'lot-marker-root',
+    html: `<span class="lot-marker lot-marker--${status}${selected ? ' lot-marker--selected' : ''}"><span class="lot-marker__number">${Math.max(0, lot.free_spots)}</span></span>`,
+    iconSize: [58, 44],
+    iconAnchor: [29, 22],
   });
   return icon;
+}
+
+function makeClusterIcon(count: number, language: Language) {
+  return L.divIcon({
+    className: 'lot-cluster-root',
+    html: `<span class="lot-cluster"><span class="lot-cluster__count">${count}</span><span class="lot-cluster__label">${language === 'tr' ? 'otopark' : 'lots'}</span></span>`,
+    iconSize: [58, 44],
+    iconAnchor: [29, 22],
+  });
+}
+
+function useMapColorScheme() {
+  const [isDark, setIsDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const update = (event: MediaQueryListEvent) => setIsDark(event.matches);
+    mediaQuery.addEventListener('change', update);
+    return () => mediaQuery.removeEventListener('change', update);
+  }, []);
+
+  return isDark;
+}
+
+function ClusteredLotMarkers({
+  lots,
+  selectedId,
+  onSelectLot,
+  language,
+}: {
+  lots: ParkingLot[];
+  selectedId: number | null;
+  onSelectLot: (lot: ParkingLot) => void;
+  language: Language;
+}) {
+  const map = useMap();
+  const [revision, setRevision] = useState(0);
+  useMapEvents({
+    zoomend: () => setRevision((value) => value + 1),
+    moveend: () => setRevision((value) => value + 1),
+  });
+
+  const groups = useMemo(() => {
+    const zoom = map.getZoom();
+    const clusters: { center: [number, number]; lots: ParkingLot[] }[] = [];
+    for (const lot of lots) {
+      if (lot.id === selectedId) {
+        clusters.push({ center: [lot.lat, lot.lng], lots: [lot] });
+        continue;
+      }
+      const point = map.project([lot.lat, lot.lng], zoom);
+      const match = clusters.find((cluster) => {
+        if (cluster.lots[0].id === selectedId) return false;
+        const center = map.project(cluster.center, zoom);
+        return point.distanceTo(center) < 54;
+      });
+      if (match) {
+        match.lots.push(lot);
+        match.center = [
+          match.lots.reduce((total, item) => total + item.lat, 0) / match.lots.length,
+          match.lots.reduce((total, item) => total + item.lng, 0) / match.lots.length,
+        ];
+      } else {
+        clusters.push({ center: [lot.lat, lot.lng], lots: [lot] });
+      }
+    }
+    return clusters;
+  }, [lots, map, revision, selectedId]);
+
+  return (
+    <>
+      {groups.map((group) => {
+        if (group.lots.length > 1) {
+          return (
+            <Marker
+              key={`cluster-${group.lots.map((lot) => lot.id).join('-')}`}
+              position={group.center}
+              icon={makeClusterIcon(group.lots.length, language)}
+              title={language === 'tr' ? `${group.lots.length} otopark` : `${group.lots.length} parking lots`}
+              eventHandlers={{
+                click: () => map.setView(group.center, Math.min(map.getMaxZoom(), map.getZoom() + 2), { animate: true }),
+              }}
+            />
+          );
+        }
+
+        const lot = group.lots[0];
+        const selected = selectedId === lot.id;
+        return (
+          <Marker
+            key={lot.id}
+            position={[lot.lat, lot.lng]}
+            icon={makeLotIcon(lot, selected)}
+            zIndexOffset={selected ? 1000 : 0}
+            eventHandlers={{ click: () => onSelectLot(lot) }}
+            title={`${lot.name}: ${lot.free_spots} free spots`}
+          />
+        );
+      })}
+    </>
+  );
 }
 
 function MapTapHandler({ onMapTap }: { onMapTap: () => void }) {
@@ -193,6 +294,7 @@ function ParkingMap() {
   const dragStart = useRef<number | null>(null);
   const [, setClock] = useState(0);
   const text = copy[language];
+  const isDarkMap = useMapColorScheme();
   const selectedLot = lots?.find((lot) => lot.id === selectedId);
   const sortOrigin = userPosition ?? FATIH_CENTER;
   const visibleLots = useMemo(() => (lots ?? [])
@@ -256,6 +358,7 @@ function ParkingMap() {
     <main className="park-app" data-testid="screen-parking-map">
       <div className="park-map" data-testid="map-fatih">
         <MapContainer
+          className={isDarkMap ? 'leaflet-map--dark' : undefined}
           center={FATIH_CENTER}
           zoom={15}
           minZoom={12}
@@ -271,17 +374,13 @@ function ParkingMap() {
           <MapViewport target={viewportTarget} selectedId={selectedId} />
           <ZoomControl position="bottomright" />
           <MapTapHandler onMapTap={() => setSelectedId(null)} />
-          {visibleLots.map((lot) => (
-            <Marker
-              key={lot.id}
-              position={[lot.lat, lot.lng]}
-              icon={makeLotIcon(lot, selectedId === lot.id)}
-              eventHandlers={{ click: () => selectLot(lot) }}
-              title={`${lot.name}: ${lot.free_spots} ${text.spaces}`}
-            />
-          ))}
+          <ClusteredLotMarkers lots={visibleLots} selectedId={selectedId} onSelectLot={selectLot} language={language} />
           {userPosition && (
-            <CircleMarker center={userPosition} radius={8} pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#007AFF', fillOpacity: 1 }} />
+            <>
+              <CircleMarker center={userPosition} radius={15} pathOptions={{ color: '#007aff', weight: 1, fillColor: '#007aff', fillOpacity: 0.16, interactive: false }} />
+              <CircleMarker center={userPosition} radius={7} pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#007aff', fillOpacity: 1 }} />
+              <CircleMarker center={userPosition} radius={2} pathOptions={{ color: '#ffffff', weight: 1, fillColor: '#ffffff', fillOpacity: 1, interactive: false }} />
+            </>
           )}
         </MapContainer>
       </div>

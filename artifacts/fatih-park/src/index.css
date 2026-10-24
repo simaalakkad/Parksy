@@ -63,18 +63,23 @@ button { font: inherit; }
 .park-app { height: 100dvh; min-height: 100dvh; width: 100%; position: relative; overflow: hidden; background: #e8e5dc; }
 .park-map { position: absolute; inset: 0; z-index: 0; background: #e8e5dc; }
 .park-map .leaflet-container { width: 100%; height: 100%; font-family: var(--app-font-sans); background: #e8e5dc; }
+.park-map .leaflet-map--dark { background: #202832; }
+.park-map .leaflet-map--dark .leaflet-tile-pane { filter: invert(.9) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.82); }
 .leaflet-control-zoom { border: 0 !important; box-shadow: 0 5px 18px #1b29301c !important; border-radius: 14px !important; overflow: hidden; }
 .leaflet-control-zoom a { width: 46px !important; height: 46px !important; line-height: 44px !important; color: #24313a !important; background: #fffdf8 !important; border-bottom: 1px solid #e8e4dc !important; }
 .leaflet-control-attribution { font-size: 9px !important; background: #fffdf8db !important; border-radius: 6px 0 0 0; }
 .leaflet-control-attribution a { color: #27685e !important; }
-.lot-pin { background: transparent; border: 0; }
-.lot-pin__body { height: 40px; min-width: 40px; padding: 0 10px; border: 3px solid #fffdf8; border-radius: 22px 22px 22px 7px; transform: rotate(-45deg); display: flex; justify-content: center; align-items: center; box-shadow: 0 3px 10px #18252d40; }
-.lot-pin__number { color: white; transform: rotate(45deg); font: 800 13px/1 var(--app-font-display); letter-spacing: -.3px; }
-.lot-pin--available .lot-pin__body { background: #16836d; }
-.lot-pin--few .lot-pin__body { background: #d77921; }
-.lot-pin--full .lot-pin__body { background: #c5423d; }
-.lot-pin--stale .lot-pin__body { background: #737b80; }
-.lot-pin--selected .lot-pin__body { box-shadow: 0 0 0 4px #f7c95e, 0 5px 15px #18252d50; }
+.lot-marker-root, .lot-cluster-root { background: transparent; border: 0; }
+.lot-marker { min-width: 42px; height: 36px; padding: 0 10px; display: flex; align-items: center; justify-content: center; border: 2px solid #fffdf8; border-radius: 999px; box-shadow: 0 3px 10px #18252d40; transition: box-shadow .16s ease, transform .16s ease; }
+.lot-marker__number { color: #fff; font: 800 13px/1 var(--app-font-display); letter-spacing: -.3px; }
+.lot-marker--available { background: #16836d; }
+.lot-marker--few { background: #d77921; }
+.lot-marker--full { background: #c5423d; }
+.lot-marker--stale { background: #737b80; }
+.lot-marker--selected { box-shadow: 0 0 0 4px #f7c95e, 0 5px 15px #18252d50; transform: scale(1.08); }
+.lot-cluster { width: 48px; height: 38px; display: flex; align-items: center; justify-content: center; gap: 4px; border: 2px solid #fff; border-radius: 999px; background: #263b48; color: #fff; box-shadow: 0 3px 12px #18252d50; }
+.lot-cluster__count { font: 800 14px/1 var(--app-font-display); }
+.lot-cluster__label { font-size: 9px; font-weight: 700; }
 
 .topbar { position: absolute; z-index: 500; top: max(12px, env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; pointer-events: none; }
 .brand-panel, .language-toggle { pointer-events: auto; background: #fffdf8; box-shadow: 0 8px 28px #23313a20; }
@@ -180,12 +185,13 @@ button { font: inherit; }
   .leaflet-control-attribution { font-size: 8px !important; color: #5f6973 !important; background: rgba(255,255,255,.67) !important; backdrop-filter: blur(10px); }
   .leaflet-control-attribution a { color: #007aff !important; }
   .leaflet-control-zoom { display: none !important; }
-  .lot-pin__body { border: 2px solid rgba(255,255,255,.96); box-shadow: 0 3px 10px rgba(19,37,59,.24); }
-  .lot-pin--available .lot-pin__body { background: #39a879; }
-  .lot-pin--few .lot-pin__body { background: #e9a33a; }
-  .lot-pin--full .lot-pin__body { background: #dc6668; }
-  .lot-pin--stale .lot-pin__body { background: #8d98a3; }
-  .lot-pin--selected .lot-pin__body { box-shadow: 0 0 0 3px #007aff, 0 5px 14px rgba(19,37,59,.28); }
+  .lot-marker { border: 2px solid rgba(255,255,255,.96); box-shadow: 0 3px 10px rgba(19,37,59,.24); }
+  .lot-marker--available { background: #39a879; }
+  .lot-marker--few { background: #e9a33a; }
+  .lot-marker--full { background: #dc6668; }
+  .lot-marker--stale { background: #8d98a3; }
+  .lot-marker--selected { box-shadow: 0 0 0 3px #007aff, 0 5px 14px rgba(19,37,59,.28); }
+  .lot-cluster { background: #263b48; }
   .desktop-topbar, .desktop-legend, .desktop-count, .status-panel, .lot-card { display: none !important; }
   .mobile-top-controls { position: absolute; z-index: 520; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; }
   .mobile-search-row { display: flex; align-items: center; gap: 8px; }
