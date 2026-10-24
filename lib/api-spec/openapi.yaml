@@ -31,7 +31,51 @@ paths:
       operationId: listParkingLots
       tags: [parking]
       summary: List parking lots
-      description: Returns parking lots in the Fatih district.
+      description: Returns parking lots in Fatih, optionally filtered and sorted by distance from a supplied location.
+      parameters:
+        - name: lat
+          in: query
+          description: Latitude of the user's location. Must be provided with lng.
+          required: false
+          schema:
+            type: number
+            minimum: -90
+            maximum: 90
+        - name: lng
+          in: query
+          description: Longitude of the user's location. Must be provided with lat.
+          required: false
+          schema:
+            type: number
+            minimum: -180
+            maximum: 180
+        - name: price_min
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: price_max
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 0
+        - name: covered
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: ev_charging
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: open_now
+          in: query
+          required: false
+          schema:
+            type: boolean
       responses:
         "200":
           description: Parking lots
@@ -88,4 +132,6 @@ components:
         updated_at:
           type: string
           format: date-time
+        distance_km:
+          type: ["number", "null"]
 

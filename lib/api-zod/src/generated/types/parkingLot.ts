@@ -18,4 +18,6 @@ export interface ParkingLot {
   is_covered: boolean;
   has_ev_charging: boolean;
   updated_at: Date;
+  /** @nullable */
+  distance_km?: number | null;
 }

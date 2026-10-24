@@ -17,6 +17,7 @@ import type {
 
 import type {
   HealthStatus,
+  ListParkingLotsParams,
   ParkingLot
 } from './api.schemas';
 
@@ -125,21 +126,28 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
-export const getListParkingLotsUrl = () => {
+export const getListParkingLotsUrl = (params?: ListParkingLotsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/parking-lots`
+  return stringifiedParams.length > 0 ? `/api/parking-lots?${stringifiedParams}` : `/api/parking-lots`
 }
 
 /**
- * Returns parking lots in the Fatih district.
+ * Returns parking lots in Fatih, optionally filtered and sorted by distance from a supplied location.
  * @summary List parking lots
  */
-export const listParkingLots = async ( options?: Parameters<typeof customFetch>[1]): Promise<ParkingLot[]> => {
+export const listParkingLots = async (params?: ListParkingLotsParams, options?: Parameters<typeof customFetch>[1]): Promise<ParkingLot[]> => {
 
-  return customFetch<ParkingLot[]>(getListParkingLotsUrl(),
+  return customFetch<ParkingLot[]>(getListParkingLotsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -152,23 +160,23 @@ export const listParkingLots = async ( options?: Parameters<typeof customFetch>[
 
 
 
-export const getListParkingLotsQueryKey = () => {
+export const getListParkingLotsQueryKey = (params?: ListParkingLotsParams,) => {
     return [
-    `/api/parking-lots`
+    `/api/parking-lots`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListParkingLotsQueryOptions = <TData = Awaited<ReturnType<typeof listParkingLots>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listParkingLots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListParkingLotsQueryOptions = <TData = Awaited<ReturnType<typeof listParkingLots>>, TError = ErrorType<unknown>>(params?: ListParkingLotsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listParkingLots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListParkingLotsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListParkingLotsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listParkingLots>>> = ({ signal }) => listParkingLots({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listParkingLots>>> = ({ signal }) => listParkingLots(params, { signal, ...requestOptions });
 
 
 
@@ -186,11 +194,11 @@ export type ListParkingLotsQueryError = ErrorType<unknown>
  */
 
 export function useListParkingLots<TData = Awaited<ReturnType<typeof listParkingLots>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listParkingLots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListParkingLotsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listParkingLots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListParkingLotsQueryOptions(options)
+  const queryOptions = getListParkingLotsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

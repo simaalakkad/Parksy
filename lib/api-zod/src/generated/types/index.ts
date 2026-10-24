@@ -7,4 +7,5 @@
  */
 
 export * from './healthStatus';
+export * from './listParkingLotsParams';
 export * from './parkingLot';

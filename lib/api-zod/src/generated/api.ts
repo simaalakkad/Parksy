@@ -18,9 +18,31 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Returns parking lots in the Fatih district.
+ * Returns parking lots in Fatih, optionally filtered and sorted by distance from a supplied location.
  * @summary List parking lots
  */
+export const listParkingLotsQueryLatMin = -90;
+export const listParkingLotsQueryLatMax = 90;
+
+export const listParkingLotsQueryLngMin = -180;
+export const listParkingLotsQueryLngMax = 180;
+
+export const listParkingLotsQueryPriceMinMin = 0;
+
+export const listParkingLotsQueryPriceMaxMin = 0;
+
+
+
+export const ListParkingLotsQueryParams = zod.object({
+  "lat": zod.coerce.number().min(listParkingLotsQueryLatMin).max(listParkingLotsQueryLatMax).optional().describe('Latitude of the user\'s location. Must be provided with lng.'),
+  "lng": zod.coerce.number().min(listParkingLotsQueryLngMin).max(listParkingLotsQueryLngMax).optional().describe('Longitude of the user\'s location. Must be provided with lat.'),
+  "price_min": zod.coerce.number().min(listParkingLotsQueryPriceMinMin).optional(),
+  "price_max": zod.coerce.number().min(listParkingLotsQueryPriceMaxMin).optional(),
+  "covered": zod.coerce.boolean().optional(),
+  "ev_charging": zod.coerce.boolean().optional(),
+  "open_now": zod.coerce.boolean().optional()
+})
+
 export const ListParkingLotsResponseItem = zod.object({
   "id": zod.number().int(),
   "name": zod.string(),
@@ -32,7 +54,8 @@ export const ListParkingLotsResponseItem = zod.object({
   "hours": zod.string(),
   "is_covered": zod.boolean(),
   "has_ev_charging": zod.boolean(),
-  "updated_at": zod.coerce.date()
+  "updated_at": zod.coerce.date(),
+  "distance_km": zod.number().nullish()
 })
 export const ListParkingLotsResponse = zod.array(ListParkingLotsResponseItem)
 

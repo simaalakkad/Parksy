@@ -15,7 +15,7 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { useListParkingLots, type ParkingLot } from '@workspace/api-client-react';
+import { useListParkingLots, type ListParkingLotsParams, type ParkingLot } from '@workspace/api-client-react';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -73,6 +73,17 @@ const copy = {
     clearSearch: 'Aramayı temizle',
     covered: 'Kapalı',
     ev: 'Elektrikli araç şarjı',
+    findNearMe: 'Yakınımda otopark bul',
+    locating: 'Konum bulunuyor…',
+    locationConsentTitle: 'Konumunuzu kullanmamıza izin verin',
+    locationConsentBody: 'Yakındaki otoparkları uzaklığa göre sıralamak için konumunuz bir kez alınır ve mesafe hesabı için sunucuya gönderilir. Konumunuz kaydedilmez.',
+    locationConsentContinue: 'Konum iznini aç',
+    locationConsentCancel: 'Vazgeç',
+    filterPriceTitle: 'Saatlik fiyat aralığı',
+    minimumPrice: 'En az ₺',
+    maximumPrice: 'En çok ₺',
+    openNow: 'Şu an açık',
+    priceRangeError: 'En düşük fiyat, en yüksek fiyattan fazla olamaz.',
   },
   en: {
     subtitle: 'Fatih, Istanbul · Sample parking data',
@@ -111,6 +122,17 @@ const copy = {
     clearSearch: 'Clear search',
     covered: 'Covered',
     ev: 'EV charging',
+    findNearMe: 'Find parking near me',
+    locating: 'Finding your location…',
+    locationConsentTitle: 'Allow location access',
+    locationConsentBody: 'Your location is used once to sort nearby parking by distance and is sent to the server for the distance calculation. It is not saved.',
+    locationConsentContinue: 'Continue to location permission',
+    locationConsentCancel: 'Cancel',
+    filterPriceTitle: 'Hourly price range',
+    minimumPrice: 'Min ₺',
+    maximumPrice: 'Max ₺',
+    openNow: 'Open now',
+    priceRangeError: 'Minimum price cannot be higher than maximum price.',
   },
 } satisfies Record<Language, Record<string, unknown>>;
 
@@ -271,36 +293,49 @@ function MapViewport({ target, selectedId }: { target: [number, number] | null; 
   return null;
 }
 
-function distanceBetween(a: [number, number], b: [number, number]) {
-  const radians = (value: number) => value * Math.PI / 180;
-  const dLat = radians(b[0] - a[0]);
-  const dLng = radians(b[1] - a[1]);
-  const value = Math.sin(dLat / 2) ** 2
-    + Math.cos(radians(a[0])) * Math.cos(radians(b[0])) * Math.sin(dLng / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-}
-
 function ParkingMap() {
-  const { data: lots, isLoading, isError, refetch } = useListParkingLots();
   const [language, setLanguage] = useState<Language>('tr');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<StatusFilter>('all');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [coveredOnly, setCoveredOnly] = useState(false);
+  const [evOnly, setEvOnly] = useState(false);
+  const [openNowOnly, setOpenNowOnly] = useState(false);
   const [detent, setDetent] = useState<Detent>('half');
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [locationError, setLocationError] = useState('');
+  const [locationPending, setLocationPending] = useState(false);
+  const [locationAccepted, setLocationAccepted] = useState(false);
+  const [locationConsentOpen, setLocationConsentOpen] = useState(false);
   const [viewportTarget, setViewportTarget] = useState<[number, number] | null>(null);
   const dragStart = useRef<number | null>(null);
   const [, setClock] = useState(0);
   const text = copy[language];
   const isDarkMap = useMapColorScheme();
-  const selectedLot = lots?.find((lot) => lot.id === selectedId);
-  const sortOrigin = userPosition ?? FATIH_CENTER;
+  const minPriceValue = priceMin === '' ? undefined : Number(priceMin);
+  const maxPriceValue = priceMax === '' ? undefined : Number(priceMax);
+  const priceRangeInvalid = minPriceValue !== undefined && maxPriceValue !== undefined && minPriceValue > maxPriceValue;
+  const queryParams = useMemo<ListParkingLotsParams>(() => {
+    const params: ListParkingLotsParams = {};
+    if (userPosition) {
+      params.lat = userPosition[0];
+      params.lng = userPosition[1];
+    }
+    if (!priceRangeInvalid && minPriceValue !== undefined) params.price_min = minPriceValue;
+    if (!priceRangeInvalid && maxPriceValue !== undefined) params.price_max = maxPriceValue;
+    if (coveredOnly) params.covered = true;
+    if (evOnly) params.ev_charging = true;
+    if (openNowOnly) params.open_now = true;
+    return params;
+  }, [userPosition, minPriceValue, maxPriceValue, priceRangeInvalid, coveredOnly, evOnly, openNowOnly]);
+  const { data: lots, isLoading, isError, refetch } = useListParkingLots(queryParams);
   const visibleLots = useMemo(() => (lots ?? [])
     .filter((lot) => lot.name.toLocaleLowerCase(language === 'tr' ? 'tr-TR' : 'en').includes(search.trim().toLocaleLowerCase(language === 'tr' ? 'tr-TR' : 'en')))
-    .filter((lot) => filter === 'all' || statusFor(lot) === filter)
-    .sort((a, b) => distanceBetween(sortOrigin, [a.lat, a.lng]) - distanceBetween(sortOrigin, [b.lat, b.lng])), [lots, language, search, filter, sortOrigin[0], sortOrigin[1]]);
+    .filter((lot) => filter === 'all' || statusFor(lot) === filter), [lots, language, search, filter]);
+  const selectedLot = visibleLots.find((lot) => lot.id === selectedId);
   const filterLabels: Record<StatusFilter, string> = {
     all: text.all as string,
     available: language === 'tr' ? 'Boş yer çok' : 'Plenty free',
@@ -311,8 +346,10 @@ function ParkingMap() {
 
   const requestLocation = () => {
     setLocationError('');
+    setLocationPending(true);
     if (!navigator.geolocation) {
       setLocationError(text.locationUnavailable as string);
+      setLocationPending(false);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -320,10 +357,23 @@ function ParkingMap() {
         const position: [number, number] = [coords.latitude, coords.longitude];
         setUserPosition(position);
         setViewportTarget(position);
+        setLocationPending(false);
       },
-      (error) => setLocationError(error.code === error.PERMISSION_DENIED ? text.locationDenied as string : text.locationUnavailable as string),
+      (error) => {
+        setLocationError(error.code === error.PERMISSION_DENIED ? text.locationDenied as string : text.locationUnavailable as string);
+        setLocationPending(false);
+      },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
+  };
+  const findNearMe = () => {
+    if (locationAccepted) requestLocation();
+    else setLocationConsentOpen(true);
+  };
+  const confirmLocationConsent = () => {
+    setLocationConsentOpen(false);
+    setLocationAccepted(true);
+    requestLocation();
   };
 
   const selectLot = (lot: ParkingLot) => {
@@ -393,6 +443,9 @@ function ParkingMap() {
           </div>
           <p className="brand-subtitle">{text.subtitle as string}</p>
         </div>
+        <button className="desktop-nearby-button" type="button" onClick={findNearMe} disabled={locationPending} data-testid="button-find-nearby-desktop">
+          <LocateFixed size={18} />{locationPending ? text.locating as string : text.findNearMe as string}
+        </button>
         <div className="language-toggle" aria-label="Language">
           <button
             type="button"
@@ -418,7 +471,7 @@ function ParkingMap() {
 
       {!isLoading && !isError && (
         <div className="map-count desktop-count" data-testid="text-parking-count">
-          {((text.lotCount as (count: number) => string)(lots?.length ?? 0))}
+        {((text.lotCount as (count: number) => string)(visibleLots.length))}
         </div>
       )}
 
@@ -524,21 +577,48 @@ function ParkingMap() {
         </div>
         <div className="mobile-brand-caption">Fatih Park <span>·</span> {text.subtitle as string}</div>
         {filterOpen && (
-          <div className="filter-menu" role="group" aria-label={text.filters as string}>
-            {(Object.keys(filterLabels) as StatusFilter[]).map((value) => (
-              <button key={value} type="button" className={`filter-option ${filter === value ? 'is-active' : ''}`} onClick={() => { setFilter(value); setFilterOpen(false); }} data-testid={`filter-${value}`}>
-                {value !== 'all' && <i className={`legend-dot legend-dot--${value === 'available' ? 'available' : value === 'few' ? 'few' : value === 'full' ? 'full' : 'stale'}`} />}
-                {filterLabels[value]}
-              </button>
-            ))}
+          <div className="filter-menu" role="group" aria-label={text.filters as string} data-testid="parking-filters">
+            <div className="filter-group-title">{text.filters as string}</div>
+            <div className="filter-status-options">
+              {(Object.keys(filterLabels) as StatusFilter[]).map((value) => (
+                <button key={value} type="button" className={`filter-option ${filter === value ? 'is-active' : ''}`} onClick={() => setFilter(value)} data-testid={`filter-${value}`}>
+                  {value !== 'all' && <i className={`legend-dot legend-dot--${value === 'available' ? 'available' : value === 'few' ? 'few' : value === 'full' ? 'full' : 'stale'}`} />}
+                  {filterLabels[value]}
+                </button>
+              ))}
+            </div>
+            <div className="filter-price">
+              <div className="filter-group-title">{text.filterPriceTitle as string}</div>
+              <div className="filter-price-row">
+                <label className="filter-price-field">
+                  <span>{text.minimumPrice as string}</span>
+                  <input type="number" min="0" step="5" value={priceMin} onChange={(event) => setPriceMin(event.target.value)} inputMode="decimal" />
+                </label>
+                <label className="filter-price-field">
+                  <span>{text.maximumPrice as string}</span>
+                  <input type="number" min="0" step="5" value={priceMax} onChange={(event) => setPriceMax(event.target.value)} inputMode="decimal" />
+                </label>
+              </div>
+              {priceRangeInvalid && <p className="filter-validation" role="alert">{text.priceRangeError as string}</p>}
+            </div>
+            <label className="filter-check">
+              <input type="checkbox" checked={coveredOnly} onChange={(event) => setCoveredOnly(event.target.checked)} data-testid="filter-covered" />
+              <span>{text.covered as string}</span>
+            </label>
+            <label className="filter-check">
+              <input type="checkbox" checked={evOnly} onChange={(event) => setEvOnly(event.target.checked)} data-testid="filter-ev" />
+              <span>{text.ev as string}</span>
+            </label>
+            <label className="filter-check">
+              <input type="checkbox" checked={openNowOnly} onChange={(event) => setOpenNowOnly(event.target.checked)} data-testid="filter-open-now" />
+              <span>{text.openNow as string}</span>
+            </label>
           </div>
         )}
       </div>
 
       <div className="mobile-map-actions">
-        {locationError && <div className="location-error" role="status">{locationError}</div>}
-        <button className={`map-action ${userPosition ? 'is-located' : ''}`} type="button" onClick={requestLocation} aria-label={text.locate as string} title={text.locate as string} data-testid="button-current-location"><LocateFixed size={22} /></button>
-        <button className={`map-action ${filter !== 'all' ? 'is-filtered' : ''}`} type="button" onClick={() => setFilterOpen((open) => !open)} aria-label={text.filters as string} aria-expanded={filterOpen} data-testid="button-availability-filter"><SlidersHorizontal size={21} /></button>
+        <button className={`map-action ${(coveredOnly || evOnly || openNowOnly || priceMin !== '' || priceMax !== '' || filter !== 'all') ? 'is-filtered' : ''}`} type="button" onClick={() => setFilterOpen((open) => !open)} aria-label={text.filters as string} aria-expanded={filterOpen} data-testid="button-availability-filter"><SlidersHorizontal size={21} /></button>
       </div>
 
       <section className={`mobile-sheet mobile-sheet--${detent}`} aria-label={text.nearest as string} data-testid="mobile-parking-sheet">
@@ -557,6 +637,10 @@ function ParkingMap() {
           </div>
           <div className="sheet-count">{isLoading ? '—' : visibleLots.length}</div>
         </div>
+        <button className="find-nearby-button" type="button" onClick={findNearMe} disabled={locationPending} data-testid="button-find-nearby">
+          <LocateFixed size={19} />{locationPending ? text.locating as string : text.findNearMe as string}
+        </button>
+        {locationError && <div className="location-error location-error--sheet" role="status">{locationError}</div>}
         {selectedLot && (
           <article className="mobile-selected-lot" data-testid={`mobile-card-parking-lot-${selectedLot.id}`}>
             <div className="mobile-selected-head">
@@ -582,13 +666,27 @@ function ParkingMap() {
           {!isLoading && visibleLots.map((lot, index) => (
             <button key={lot.id} type="button" className={`mobile-lot-row ${selectedId === lot.id ? 'is-selected' : ''}`} onClick={() => selectLot(lot)} data-testid={`button-select-lot-${lot.id}`}>
               <span className={`mobile-row-status mobile-row-status--${statusFor(lot)}`}><CarFront size={18} /></span>
-              <span className="mobile-row-copy"><strong>{lot.name}</strong><span>{distanceBetween(sortOrigin, [lot.lat, lot.lng]).toFixed(1)} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
+               <span className="mobile-row-copy"><strong>{lot.name}</strong><span>{lot.distance_km?.toFixed(1) ?? '—'} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
               <span className="mobile-row-spots"><strong>{lot.free_spots}</strong><small>{text.spaces as string}</small></span>
             </button>
           ))}
           {!isLoading && !isError && visibleLots.length > 0 && <div className="sample-note">{text.subtitle as string}</div>}
         </div>
       </section>
+
+      {locationConsentOpen && (
+        <div className="location-consent-backdrop" onClick={() => setLocationConsentOpen(false)}>
+          <section className="location-consent-dialog" role="dialog" aria-modal="true" aria-labelledby="location-consent-title" onClick={(event) => event.stopPropagation()} data-testid="location-consent-dialog">
+            <span className="location-consent-icon"><LocateFixed size={22} /></span>
+            <h2 id="location-consent-title">{text.locationConsentTitle as string}</h2>
+            <p>{text.locationConsentBody as string}</p>
+            <div className="location-dialog-actions">
+              <button type="button" className="location-cancel-button" onClick={() => setLocationConsentOpen(false)}>{text.locationConsentCancel as string}</button>
+              <button type="button" className="location-continue-button" onClick={confirmLocationConsent} data-testid="button-confirm-location">{text.locationConsentContinue as string}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

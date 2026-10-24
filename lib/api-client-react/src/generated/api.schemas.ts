@@ -21,5 +21,33 @@ export interface ParkingLot {
   is_covered: boolean;
   has_ev_charging: boolean;
   updated_at: string;
+  /** @nullable */
+  distance_km?: number | null;
 }
+
+export type ListParkingLotsParams = {
+/**
+ * Latitude of the user's location. Must be provided with lng.
+ * @minimum -90
+ * @maximum 90
+ */
+lat?: number;
+/**
+ * Longitude of the user's location. Must be provided with lat.
+ * @minimum -180
+ * @maximum 180
+ */
+lng?: number;
+/**
+ * @minimum 0
+ */
+price_min?: number;
+/**
+ * @minimum 0
+ */
+price_max?: number;
+covered?: boolean;
+ev_charging?: boolean;
+open_now?: boolean;
+};
 
