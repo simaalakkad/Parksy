@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MapContainer, Marker, TileLayer, ZoomControl, useMapEvents } from 'react-leaflet';
+import { CircleMarker, MapContainer, Marker, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import {
@@ -8,8 +8,11 @@ import {
   ArrowUpRight,
   CarFront,
   Clock3,
+  LocateFixed,
   MapPin,
   Navigation,
+  Search,
+  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { useListParkingLots, type ParkingLot } from '@workspace/api-client-react';
@@ -29,6 +32,8 @@ const queryClient = new QueryClient();
 const FATIH_CENTER: [number, number] = [41.0186, 28.9397];
 type Language = 'tr' | 'en';
 type LotStatus = 'available' | 'few' | 'full' | 'stale';
+type StatusFilter = 'all' | LotStatus;
+type Detent = 'collapsed' | 'half' | 'full';
 
 const copy = {
   tr: {
@@ -57,6 +62,17 @@ const copy = {
     emptyTitle: 'Yakında otopark bulunamadı',
     emptyDescription: 'Şu anda Fatih için listelenecek otopark verisi yok.',
     parking: 'Otopark',
+    searchPlaceholder: 'Otopark ara',
+    nearest: 'Yakındaki otoparklar',
+    filters: 'Durum filtresi',
+    all: 'Tümü',
+    locate: 'Konumumu bul',
+    locationDenied: 'Konum izni alınamadı. Tarayıcı ayarlarından izin verin.',
+    locationUnavailable: 'Konumunuz şu anda belirlenemiyor.',
+    noMatches: 'Bu aramayla eşleşen otopark yok',
+    clearSearch: 'Aramayı temizle',
+    covered: 'Kapalı',
+    ev: 'Elektrikli araç şarjı',
   },
   en: {
     subtitle: 'Fatih, Istanbul · Sample parking data',
@@ -84,6 +100,17 @@ const copy = {
     emptyTitle: 'No nearby parking found',
     emptyDescription: 'There is no parking data to show for Fatih right now.',
     parking: 'Parking',
+    searchPlaceholder: 'Search parking',
+    nearest: 'Parking nearby',
+    filters: 'Availability filter',
+    all: 'All',
+    locate: 'My location',
+    locationDenied: 'Location access was not granted. Allow it in your browser settings.',
+    locationUnavailable: 'Your location is unavailable right now.',
+    noMatches: 'No parking matches this search',
+    clearSearch: 'Clear search',
+    covered: 'Covered',
+    ev: 'EV charging',
   },
 } satisfies Record<Language, Record<string, unknown>>;
 
@@ -130,13 +157,95 @@ function MapTapHandler({ onMapTap }: { onMapTap: () => void }) {
   return null;
 }
 
+function MapViewport({ target, selectedId }: { target: [number, number] | null; selectedId: number | null }) {
+  const map = useMap();
+  const lastTarget = useRef<string | null>(null);
+  useEffect(() => {
+    if (!target) return;
+    const key = `${target[0].toFixed(5)},${target[1].toFixed(5)},${selectedId ?? ''}`;
+    if (lastTarget.current === key) return;
+    lastTarget.current = key;
+    map.flyTo(target, Math.max(map.getZoom(), 15), { duration: 0.55 });
+  }, [map, target, selectedId]);
+  return null;
+}
+
+function distanceBetween(a: [number, number], b: [number, number]) {
+  const radians = (value: number) => value * Math.PI / 180;
+  const dLat = radians(b[0] - a[0]);
+  const dLng = radians(b[1] - a[1]);
+  const value = Math.sin(dLat / 2) ** 2
+    + Math.cos(radians(a[0])) * Math.cos(radians(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
+
 function ParkingMap() {
   const { data: lots, isLoading, isError, refetch } = useListParkingLots();
   const [language, setLanguage] = useState<Language>('tr');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<StatusFilter>('all');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [detent, setDetent] = useState<Detent>('half');
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  const [locationError, setLocationError] = useState('');
+  const [viewportTarget, setViewportTarget] = useState<[number, number] | null>(null);
+  const dragStart = useRef<number | null>(null);
   const [, setClock] = useState(0);
   const text = copy[language];
   const selectedLot = lots?.find((lot) => lot.id === selectedId);
+  const sortOrigin = userPosition ?? FATIH_CENTER;
+  const visibleLots = useMemo(() => (lots ?? [])
+    .filter((lot) => lot.name.toLocaleLowerCase(language === 'tr' ? 'tr-TR' : 'en').includes(search.trim().toLocaleLowerCase(language === 'tr' ? 'tr-TR' : 'en')))
+    .filter((lot) => filter === 'all' || statusFor(lot) === filter)
+    .sort((a, b) => distanceBetween(sortOrigin, [a.lat, a.lng]) - distanceBetween(sortOrigin, [b.lat, b.lng])), [lots, language, search, filter, sortOrigin[0], sortOrigin[1]]);
+  const filterLabels: Record<StatusFilter, string> = {
+    all: text.all as string,
+    available: language === 'tr' ? 'Boş yer çok' : 'Plenty free',
+    few: language === 'tr' ? 'Az yer' : 'Few left',
+    full: language === 'tr' ? 'Dolu' : 'Full',
+    stale: language === 'tr' ? 'Eski bilgi' : 'Older data',
+  };
+
+  const requestLocation = () => {
+    setLocationError('');
+    if (!navigator.geolocation) {
+      setLocationError(text.locationUnavailable as string);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const position: [number, number] = [coords.latitude, coords.longitude];
+        setUserPosition(position);
+        setViewportTarget(position);
+      },
+      (error) => setLocationError(error.code === error.PERMISSION_DENIED ? text.locationDenied as string : text.locationUnavailable as string),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  };
+
+  const selectLot = (lot: ParkingLot) => {
+    setSelectedId(lot.id);
+    setViewportTarget([lot.lat, lot.lng]);
+    setDetent('full');
+  };
+
+  const onHandlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
+    dragStart.current = event.clientY;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onHandlePointerUp = (event: PointerEvent<HTMLButtonElement>) => {
+    if (dragStart.current === null) return;
+    const delta = event.clientY - dragStart.current;
+    dragStart.current = null;
+    if (Math.abs(delta) < 18) {
+      setDetent((value) => value === 'collapsed' ? 'half' : value === 'half' ? 'full' : 'collapsed');
+    } else if (delta < 0) {
+      setDetent((value) => value === 'collapsed' ? 'half' : 'full');
+    } else {
+      setDetent((value) => value === 'full' ? 'half' : 'collapsed');
+    }
+  };
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock((value) => value + 1), 60_000);
@@ -159,21 +268,25 @@ function ParkingMap() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          <MapViewport target={viewportTarget} selectedId={selectedId} />
           <ZoomControl position="bottomright" />
           <MapTapHandler onMapTap={() => setSelectedId(null)} />
-          {lots?.map((lot) => (
+          {visibleLots.map((lot) => (
             <Marker
               key={lot.id}
               position={[lot.lat, lot.lng]}
               icon={makeLotIcon(lot, selectedId === lot.id)}
-              eventHandlers={{ click: () => setSelectedId(lot.id) }}
+              eventHandlers={{ click: () => selectLot(lot) }}
               title={`${lot.name}: ${lot.free_spots} ${text.spaces}`}
             />
           ))}
+          {userPosition && (
+            <CircleMarker center={userPosition} radius={8} pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#007AFF', fillOpacity: 1 }} />
+          )}
         </MapContainer>
       </div>
 
-      <header className="topbar">
+      <header className="topbar desktop-topbar">
         <div className="brand-panel">
           <div className="brand-line">
             <span className="brand-mark"><CarFront size={19} strokeWidth={2.5} /></span>
@@ -197,7 +310,7 @@ function ParkingMap() {
         </div>
       </header>
 
-      <section className="map-legend" aria-label={language === 'tr' ? 'Harita açıklaması' : 'Map legend'}>
+      <section className="map-legend desktop-legend" aria-label={language === 'tr' ? 'Harita açıklaması' : 'Map legend'}>
         <span className="legend-item"><i className="legend-dot legend-dot--available" />{text.legendAvailable as string}</span>
         <span className="legend-item"><i className="legend-dot legend-dot--few" />{text.legendFew as string}</span>
         <span className="legend-item"><i className="legend-dot legend-dot--full" />{text.legendFull as string}</span>
@@ -205,7 +318,7 @@ function ParkingMap() {
       </section>
 
       {!isLoading && !isError && (
-        <div className="map-count" data-testid="text-parking-count">
+        <div className="map-count desktop-count" data-testid="text-parking-count">
           {((text.lotCount as (count: number) => string)(lots?.length ?? 0))}
         </div>
       )}
@@ -290,6 +403,93 @@ function ParkingMap() {
           </a>
         </article>
       )}
+
+      <div className="mobile-top-controls">
+        <div className="mobile-search-row">
+          <div className="mobile-search">
+            <Search size={20} aria-hidden="true" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={text.searchPlaceholder as string}
+              aria-label={text.searchPlaceholder as string}
+              data-testid="input-parking-search"
+            />
+            {search && <button type="button" aria-label={text.clearSearch as string} onClick={() => setSearch('')} data-testid="button-clear-search"><X size={17} /></button>}
+          </div>
+          <div className="language-toggle mobile-language" aria-label="Language">
+            <button type="button" aria-pressed={language === 'tr'} data-testid="button-language-tr-mobile" onClick={() => setLanguage('tr')}>TR</button>
+            <button type="button" aria-pressed={language === 'en'} data-testid="button-language-en-mobile" onClick={() => setLanguage('en')}>EN</button>
+          </div>
+        </div>
+        <div className="mobile-brand-caption">Fatih Park <span>·</span> {text.subtitle as string}</div>
+        {filterOpen && (
+          <div className="filter-menu" role="group" aria-label={text.filters as string}>
+            {(Object.keys(filterLabels) as StatusFilter[]).map((value) => (
+              <button key={value} type="button" className={`filter-option ${filter === value ? 'is-active' : ''}`} onClick={() => { setFilter(value); setFilterOpen(false); }} data-testid={`filter-${value}`}>
+                {value !== 'all' && <i className={`legend-dot legend-dot--${value === 'available' ? 'available' : value === 'few' ? 'few' : value === 'full' ? 'full' : 'stale'}`} />}
+                {filterLabels[value]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mobile-map-actions">
+        {locationError && <div className="location-error" role="status">{locationError}</div>}
+        <button className={`map-action ${userPosition ? 'is-located' : ''}`} type="button" onClick={requestLocation} aria-label={text.locate as string} title={text.locate as string} data-testid="button-current-location"><LocateFixed size={22} /></button>
+        <button className={`map-action ${filter !== 'all' ? 'is-filtered' : ''}`} type="button" onClick={() => setFilterOpen((open) => !open)} aria-label={text.filters as string} aria-expanded={filterOpen} data-testid="button-availability-filter"><SlidersHorizontal size={21} /></button>
+      </div>
+
+      <section className={`mobile-sheet mobile-sheet--${detent}`} aria-label={text.nearest as string} data-testid="mobile-parking-sheet">
+        <button
+          className="sheet-handle"
+          type="button"
+          aria-label={language === 'tr' ? 'Liste boyutunu değiştir' : 'Change list height'}
+          onPointerDown={onHandlePointerDown}
+          onPointerUp={onHandlePointerUp}
+          data-testid="button-sheet-handle"
+        ><span /></button>
+        <div className="sheet-heading">
+          <div>
+            <div className="sheet-kicker">{language === 'tr' ? 'FATİH' : 'FATIH'}</div>
+            <h1>{selectedLot ? selectedLot.name : text.nearest as string}</h1>
+          </div>
+          <div className="sheet-count">{isLoading ? '—' : visibleLots.length}</div>
+        </div>
+        {selectedLot && (
+          <article className="mobile-selected-lot" data-testid={`mobile-card-parking-lot-${selectedLot.id}`}>
+            <div className="mobile-selected-head">
+              <div className={`availability-pill availability-pill--${statusFor(selectedLot)}`}><span className="pill-dot" />{statusLabel(statusFor(selectedLot), language)}</div>
+              <button className="mobile-close" type="button" aria-label={language === 'tr' ? 'Seçimi kaldır' : 'Clear selection'} onClick={() => setSelectedId(null)} data-testid="button-close-mobile-lot"><X size={18} /></button>
+            </div>
+            <div className="mobile-lot-price"><strong>{selectedLot.price_per_hour} ₺</strong> / {text.priceUnit as string}</div>
+            <div className="mobile-lot-facts">
+              <div><strong>{selectedLot.free_spots}</strong><span>{selectedLot.free_spots === 1 ? text.spaceSingular as string : text.spaces as string}</span></div>
+              <div><strong>{relativeUpdated(selectedLot.updated_at, language)}</strong><span>{language === 'tr' ? 'Son güncelleme' : 'Last updated'}</span></div>
+            </div>
+            <div className="mobile-features">{selectedLot.is_covered && <span>{text.covered as string}</span>}{selectedLot.has_ev_charging && <span>{text.ev as string}</span>}</div>
+            <a className="navigate-button" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${selectedLot.lat},${selectedLot.lng}`)}`} target="_blank" rel="noopener noreferrer" data-testid={`mobile-link-navigate-${selectedLot.id}`}>
+              <Navigation size={19} strokeWidth={2.5} />{text.navigate as string}<ArrowUpRight size={17} />
+            </a>
+          </article>
+        )}
+        <div className="mobile-list-scroll">
+          {isLoading && <div className="mobile-skeleton-list" role="status" data-testid="mobile-status-loading">{[0, 1, 2].map((item) => <div className="mobile-skeleton-row" key={item}><i /><span><b /><b /></span><em /></div>)}</div>}
+          {isError && <div className="mobile-empty-state" role="alert" data-testid="mobile-status-error"><strong>{text.errorTitle as string}</strong><p>{text.errorDescription as string}</p><button className="mobile-retry" type="button" onClick={() => void refetch()} data-testid="mobile-button-retry">{text.retry as string}</button></div>}
+          {!isLoading && !isError && lots?.length === 0 && <div className="mobile-empty-state" data-testid="mobile-status-empty"><strong>{text.emptyTitle as string}</strong><p>{text.emptyDescription as string}</p></div>}
+          {!isLoading && !isError && lots && lots.length > 0 && visibleLots.length === 0 && <div className="mobile-empty-state"><strong>{text.noMatches as string}</strong><p>{language === 'tr' ? 'Aramanı veya filtreyi değiştirebilirsin.' : 'Try changing your search or filter.'}</p></div>}
+          {!isLoading && visibleLots.map((lot, index) => (
+            <button key={lot.id} type="button" className={`mobile-lot-row ${selectedId === lot.id ? 'is-selected' : ''}`} onClick={() => selectLot(lot)} data-testid={`button-select-lot-${lot.id}`}>
+              <span className={`mobile-row-status mobile-row-status--${statusFor(lot)}`}><CarFront size={18} /></span>
+              <span className="mobile-row-copy"><strong>{lot.name}</strong><span>{distanceBetween(sortOrigin, [lot.lat, lot.lng]).toFixed(1)} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
+              <span className="mobile-row-spots"><strong>{lot.free_spots}</strong><small>{text.spaces as string}</small></span>
+            </button>
+          ))}
+          {!isLoading && !isError && visibleLots.length > 0 && <div className="sample-note">{text.subtitle as string}</div>}
+        </div>
+      </section>
     </main>
   );
 }
