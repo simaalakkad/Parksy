@@ -3,3 +3,4 @@
 - [Istanbul product scope](istanbul-product-scope.md) — citywide coverage despite the Fatih Park name; expansion must preserve the approved design.
 - [Public place and walking services](place-search-services.md) — free-service policies and truthful walking-distance behavior must be preserved.
 - [Crowdsourced data trust](crowdsourced-data-trust.md) — qualitative reports affect status, not inventory counts; anonymous browser limits are not physical-device proof.
+- [Draft/demo scope](draft-demo-scope.md) — privacy/account additions are placeholders for now, not real authentication or legal enforcement.
