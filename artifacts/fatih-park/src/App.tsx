@@ -84,6 +84,9 @@ const copy = {
     maximumPrice: 'En çok ₺',
     openNow: 'Şu an açık',
     priceRangeError: 'En düşük fiyat, en yüksek fiyattan fazla olamaz.',
+    carMode: 'Sürüş modu',
+    carModeOn: 'Sürüş modundan çık',
+    distance: 'Mesafe',
   },
   en: {
     subtitle: 'Fatih, Istanbul · Sample parking data',
@@ -133,6 +136,9 @@ const copy = {
     maximumPrice: 'Max ₺',
     openNow: 'Open now',
     priceRangeError: 'Minimum price cannot be higher than maximum price.',
+    carMode: 'Drive mode',
+    carModeOn: 'Exit drive mode',
+    distance: 'Distance',
   },
 } satisfies Record<Language, Record<string, unknown>>;
 
@@ -310,6 +316,7 @@ function ParkingMap() {
   const [locationPending, setLocationPending] = useState(false);
   const [locationAccepted, setLocationAccepted] = useState(false);
   const [locationConsentOpen, setLocationConsentOpen] = useState(false);
+  const [carMode, setCarMode] = useState(false);
   const [viewportTarget, setViewportTarget] = useState<[number, number] | null>(null);
   const dragStart = useRef<number | null>(null);
   const [, setClock] = useState(0);
@@ -405,7 +412,7 @@ function ParkingMap() {
   }, []);
 
   return (
-    <main className="park-app" data-testid="screen-parking-map">
+    <main className={`park-app${carMode ? ' car-mode' : ''}`} data-testid="screen-parking-map">
       <div className="park-map" data-testid="map-fatih">
         <MapContainer
           className={isDarkMap ? 'leaflet-map--dark' : undefined}
@@ -446,6 +453,9 @@ function ParkingMap() {
         <button className="desktop-nearby-button" type="button" onClick={findNearMe} disabled={locationPending} data-testid="button-find-nearby-desktop">
           <LocateFixed size={18} />{locationPending ? text.locating as string : text.findNearMe as string}
         </button>
+        <button className="drive-mode-toggle" type="button" aria-pressed={carMode} onClick={() => setCarMode((value) => !value)} data-testid="button-toggle-car-mode">
+          <CarFront size={19} />{carMode ? text.carModeOn as string : text.carMode as string}
+        </button>
         <div className="language-toggle" aria-label="Language">
           <button
             type="button"
@@ -461,6 +471,84 @@ function ParkingMap() {
           >EN</button>
         </div>
       </header>
+
+      <aside className="tablet-panel" aria-label={text.nearest as string} data-testid="tablet-parking-panel">
+        <div className="tablet-panel-heading">
+          <div className="tablet-panel-title">
+            <span className="tablet-kicker">{language === 'tr' ? 'FATİH · İSTANBUL' : 'FATIH · ISTANBUL'}</span>
+            <h1>{text.nearest as string}</h1>
+          </div>
+          <span className="tablet-result-count" data-testid="tablet-text-parking-count">{isLoading ? '—' : visibleLots.length}</span>
+        </div>
+        <div className="tablet-search">
+          <Search size={19} aria-hidden="true" />
+          <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={text.searchPlaceholder as string} aria-label={text.searchPlaceholder as string} data-testid="tablet-input-parking-search" />
+          {search && <button type="button" aria-label={text.clearSearch as string} onClick={() => setSearch('')} data-testid="tablet-button-clear-search"><X size={17} /></button>}
+        </div>
+        <div className="tablet-tools">
+          <button className="tablet-location-button" type="button" onClick={findNearMe} disabled={locationPending} data-testid="tablet-button-find-nearby">
+            <LocateFixed size={18} />{locationPending ? text.locating as string : text.findNearMe as string}
+          </button>
+          <button className={`tablet-filter-button${filterOpen ? ' is-open' : ''}`} type="button" onClick={() => setFilterOpen((open) => !open)} aria-expanded={filterOpen} data-testid="tablet-button-filters">
+            <SlidersHorizontal size={18} />{text.filters as string}
+          </button>
+        </div>
+        {locationError && <div className="tablet-location-error" role="status">{locationError}</div>}
+        {filterOpen && (
+          <div className="tablet-filter-panel" role="group" aria-label={text.filters as string} data-testid="tablet-parking-filters">
+            <div className="tablet-filter-heading">{text.filters as string}</div>
+            <div className="filter-status-options">
+              {(Object.keys(filterLabels) as StatusFilter[]).map((value) => (
+                <button key={value} type="button" className={`filter-option ${filter === value ? 'is-active' : ''}`} onClick={() => setFilter(value)} data-testid={`tablet-filter-${value}`}>
+                  {value !== 'all' && <i className={`legend-dot legend-dot--${value === 'available' ? 'available' : value === 'few' ? 'few' : value === 'full' ? 'full' : 'stale'}`} />}
+                  {filterLabels[value]}
+                </button>
+              ))}
+            </div>
+            <div className="filter-price">
+              <div className="filter-group-title">{text.filterPriceTitle as string}</div>
+              <div className="filter-price-row">
+                <label className="filter-price-field"><span>{text.minimumPrice as string}</span><input type="number" min="0" step="5" value={priceMin} onChange={(event) => setPriceMin(event.target.value)} data-testid="tablet-input-price-min" /></label>
+                <label className="filter-price-field"><span>{text.maximumPrice as string}</span><input type="number" min="0" step="5" value={priceMax} onChange={(event) => setPriceMax(event.target.value)} data-testid="tablet-input-price-max" /></label>
+              </div>
+              {priceRangeInvalid && <p className="filter-validation" role="alert">{text.priceRangeError as string}</p>}
+            </div>
+            <label className="filter-check"><input type="checkbox" checked={coveredOnly} onChange={(event) => setCoveredOnly(event.target.checked)} data-testid="tablet-filter-covered" /><span>{text.covered as string}</span></label>
+            <label className="filter-check"><input type="checkbox" checked={evOnly} onChange={(event) => setEvOnly(event.target.checked)} data-testid="tablet-filter-ev" /><span>{text.ev as string}</span></label>
+            <label className="filter-check"><input type="checkbox" checked={openNowOnly} onChange={(event) => setOpenNowOnly(event.target.checked)} data-testid="tablet-filter-open-now" /><span>{text.openNow as string}</span></label>
+          </div>
+        )}
+        {selectedLot && (
+          <article className="tablet-selected-lot" data-testid={`tablet-card-parking-lot-${selectedLot.id}`}>
+            <div className="tablet-selected-heading">
+              <span className={`tablet-status-dot tablet-status-dot--${statusFor(selectedLot)}`} />
+              <div><span className="tablet-kicker">{statusLabel(statusFor(selectedLot), language)}</span><h2>{selectedLot.name}</h2></div>
+              <button type="button" aria-label={language === 'tr' ? 'Seçimi kaldır' : 'Clear selection'} onClick={() => setSelectedId(null)} data-testid={`tablet-button-close-lot-${selectedLot.id}`}><X size={18} /></button>
+            </div>
+            <div className="tablet-selected-facts">
+              <div><strong>{selectedLot.free_spots}</strong><span>{text.spaces as string}</span></div>
+              <div><strong>{selectedLot.distance_km?.toFixed(1) ?? '—'} km</strong><span>{text.distance as string}</span></div>
+              <div><strong>{selectedLot.price_per_hour} ₺</strong><span>/ {text.priceUnit as string}</span></div>
+            </div>
+            <a className="tablet-navigate-button" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${selectedLot.lat},${selectedLot.lng}`)}`} target="_blank" rel="noopener noreferrer" data-testid={`tablet-link-navigate-${selectedLot.id}`}>
+              <Navigation size={20} />{text.navigate as string}<ArrowUpRight size={18} />
+            </a>
+          </article>
+        )}
+        <div className="tablet-list" data-testid="tablet-parking-list">
+          {isLoading && <div className="tablet-skeleton" role="status" data-testid="tablet-status-loading"><i /><span /><i /><span /></div>}
+          {isError && <div className="tablet-empty" role="alert" data-testid="tablet-status-error"><strong>{text.errorTitle as string}</strong><p>{text.errorDescription as string}</p><button type="button" onClick={() => void refetch()} data-testid="tablet-button-retry">{text.retry as string}</button></div>}
+          {!isLoading && !isError && lots?.length === 0 && <div className="tablet-empty" data-testid="tablet-status-empty"><strong>{text.emptyTitle as string}</strong><p>{text.emptyDescription as string}</p></div>}
+          {!isLoading && !isError && lots && lots.length > 0 && visibleLots.length === 0 && <div className="tablet-empty"><strong>{text.noMatches as string}</strong><p>{language === 'tr' ? 'Aramanı veya filtreyi değiştirebilirsin.' : 'Try changing your search or filter.'}</p></div>}
+          {!isLoading && visibleLots.map((lot) => (
+            <button key={lot.id} type="button" className={`tablet-lot-row${selectedId === lot.id ? ' is-selected' : ''}`} onClick={() => selectLot(lot)} data-testid={`tablet-button-select-lot-${lot.id}`}>
+              <span className={`tablet-row-status tablet-row-status--${statusFor(lot)}`}><CarFront size={19} /></span>
+              <span className="tablet-row-copy"><strong>{lot.name}</strong><span>{lot.distance_km?.toFixed(1) ?? '—'} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
+              <span className="tablet-row-spots"><strong>{lot.free_spots}</strong><small>{text.spaces as string}</small><em>{lot.price_per_hour} ₺ / {text.priceUnit as string}</em></span>
+            </button>
+          ))}
+        </div>
+      </aside>
 
       <section className="map-legend desktop-legend" aria-label={language === 'tr' ? 'Harita açıklaması' : 'Map legend'}>
         <span className="legend-item"><i className="legend-dot legend-dot--available" />{text.legendAvailable as string}</span>

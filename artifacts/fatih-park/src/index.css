@@ -346,3 +346,282 @@ button { font: inherit; }
   .mobile-search input { font-size: 15px; }
   .mobile-sheet { padding-right: 14px; padding-left: 14px; }
 }
+
+/* Stage 2 — map-and-console layout for drivers using a tablet or landscape display. */
+.tablet-panel { display: none; }
+.drive-mode-toggle {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 16px;
+  border: 1px solid #ffffffc9;
+  border-radius: 15px;
+  color: #24313a;
+  background: #fffdf8;
+  box-shadow: 0 5px 18px #23313a20;
+  font-weight: 800;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.drive-mode-toggle[aria-pressed="true"] { color: #f4f5f1; background: #1c282e; border-color: #35454b; }
+
+@media (min-width: 768px) and (max-width: 1200px) {
+  .park-map { inset: 0 0 0 380px; }
+  .tablet-panel {
+    position: absolute;
+    z-index: 600;
+    inset: 0 auto 0 0;
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    padding: 26px 18px 18px;
+    overflow: hidden;
+    color: #24343a;
+    background: #f5f4ef;
+    border-right: 1px solid #d9d9d1;
+    box-shadow: 9px 0 30px rgba(26, 39, 43, .1);
+  }
+  .tablet-panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .tablet-kicker { display: block; color: #74837e; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+  .tablet-panel-title h1 { margin: 5px 0 0; font: 800 23px/1.1 var(--app-font-display); letter-spacing: -.7px; }
+  .tablet-result-count { min-width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; color: #146653; background: #dfede6; font-weight: 800; }
+  .tablet-search { height: 50px; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 0 13px; border: 1px solid #dfdfd8; border-radius: 14px; color: #73817e; background: #fffefa; }
+  .tablet-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: #24343a; background: transparent; font: 600 14px var(--app-font-sans); }
+  .tablet-search input::-webkit-search-cancel-button { display: none; }
+  .tablet-search button { width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 10px; color: #65736f; background: #eff0eb; cursor: pointer; }
+  .tablet-tools { display: grid; grid-template-columns: 1.3fr 1fr; gap: 8px; margin: 10px 0 12px; }
+  .tablet-tools button { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 9px; border: 1px solid #dbe1db; border-radius: 13px; color: #176c5d; background: #e8f1eb; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .tablet-tools button:disabled { opacity: .65; cursor: wait; }
+  .tablet-tools .tablet-filter-button { color: #394944; background: #fffefa; }
+  .tablet-tools .tablet-filter-button.is-open { border-color: #176c5d; background: #edf4ef; }
+  .tablet-location-error { margin: 0 0 9px; padding: 9px 11px; border-radius: 10px; color: #963e3e; background: #f8e9e6; font-size: 12px; }
+  .tablet-filter-panel { flex: 0 0 auto; max-height: 45%; overflow-y: auto; margin-bottom: 10px; padding: 11px; border: 1px solid #e0e1da; border-radius: 16px; background: #fffefa; box-shadow: 0 8px 20px rgba(30, 45, 44, .07); }
+  .tablet-filter-heading { padding: 1px 5px 7px; color: #65736f; font-size: 11px; font-weight: 800; }
+  .tablet-filter-panel .filter-option { min-height: 39px; font-size: 12px; }
+  .tablet-filter-panel .filter-price-field input { height: 40px; }
+  .tablet-filter-panel .filter-check { min-height: 40px; font-size: 12px; }
+  .tablet-list { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c6d0ca transparent; }
+  .tablet-lot-row { width: 100%; min-height: 84px; display: flex; align-items: center; gap: 11px; padding: 11px 7px; border: 0; border-top: 1px solid #e3e4de; color: #26363b; background: transparent; text-align: left; cursor: pointer; }
+  .tablet-lot-row:hover, .tablet-lot-row.is-selected { background: #e9f1eb; }
+  .tablet-row-status { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 13px; color: #258864; background: #e0f0e7; }
+  .tablet-row-status--few { color: #a96a19; background: #f6ead7; }
+  .tablet-row-status--full { color: #b84442; background: #f7e4e1; }
+  .tablet-row-status--stale { color: #68747a; background: #e8e9e5; }
+  .tablet-row-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .tablet-row-copy strong { overflow: hidden; color: #22353a; font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+  .tablet-row-copy span { display: flex; align-items: center; gap: 6px; color: #77827f; font-size: 11px; }
+  .tablet-row-copy i { width: 3px; height: 3px; border-radius: 50%; background: #a3aca7; }
+  .tablet-row-spots { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+  .tablet-row-spots strong { color: #23845f; font: 800 19px/1 var(--app-font-display); }
+  .tablet-row-spots small, .tablet-row-spots em { color: #78827f; font-size: 9px; font-style: normal; }
+  .tablet-row-spots em { margin-top: 3px; color: #40534d; font-weight: 700; }
+  .tablet-selected-lot { position: absolute; z-index: 3; inset: 16px 12px 16px; display: flex; flex-direction: column; justify-content: center; padding: 22px; border: 1px solid #d7ded8; border-radius: 22px; color: #25363a; background: #fbfaf6; box-shadow: 0 18px 50px rgba(23, 40, 42, .24); animation: panel-detail-enter .22s ease-out both; }
+  @keyframes panel-detail-enter { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: translateX(0); } }
+  .tablet-selected-heading { display: flex; align-items: flex-start; gap: 11px; }
+  .tablet-selected-heading > div { min-width: 0; flex: 1; }
+  .tablet-selected-heading h2 { margin: 5px 0 0; font: 800 22px/1.16 var(--app-font-display); letter-spacing: -.45px; }
+  .tablet-selected-heading button { width: 40px; height: 40px; display: grid; place-items: center; margin: -5px -5px 0 0; border: 0; border-radius: 12px; color: #65736f; background: #edf0e9; cursor: pointer; }
+  .tablet-status-dot { width: 11px; height: 11px; flex: 0 0 11px; margin-top: 3px; border-radius: 50%; background: #23845f; }
+  .tablet-status-dot--few { background: #d18b2d; }
+  .tablet-status-dot--full { background: #c5423d; }
+  .tablet-status-dot--stale { background: #737b80; }
+  .tablet-selected-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 10px; margin: 24px 0; padding: 18px 0; border-top: 1px solid #e5e5de; border-bottom: 1px solid #e5e5de; }
+  .tablet-selected-facts div { display: flex; flex-direction: column; gap: 5px; }
+  .tablet-selected-facts strong { color: #26383d; font: 800 20px/1.1 var(--app-font-display); }
+  .tablet-selected-facts span { color: #76817e; font-size: 11px; }
+  .tablet-navigate-button { min-height: 58px; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 3px; border-radius: 15px; color: #fffdf8; background: #176c5d; text-decoration: none; font: 800 15px var(--app-font-display); }
+  .tablet-empty { padding: 24px 12px; text-align: center; }
+  .tablet-empty strong { color: #26383d; }
+  .tablet-empty p { color: #75817e; font-size: 12px; line-height: 1.5; }
+  .tablet-empty button { min-height: 42px; padding: 0 15px; border: 0; border-radius: 11px; color: #fff; background: #176c5d; font-weight: 750; cursor: pointer; }
+  .tablet-skeleton { display: grid; grid-template-columns: 40px 1fr; gap: 12px; padding: 15px 5px; }
+  .tablet-skeleton i { width: 40px; height: 40px; border-radius: 13px; background: #e4e8e2; }
+  .tablet-skeleton span { height: 10px; margin-top: 8px; border-radius: 8px; background: #e4e8e2; }
+  .desktop-topbar { left: 404px; right: 20px; top: 16px; align-items: center; }
+  .desktop-topbar .brand-panel { padding: 10px 13px; }
+  .desktop-topbar .brand-subtitle { font-size: 10px; }
+  .desktop-topbar .desktop-nearby-button { display: none; }
+  .desktop-topbar .language-toggle { margin-left: auto; }
+  .desktop-legend { left: 404px; top: 88px; max-width: 300px; }
+  .desktop-count { top: 88px; }
+  .lot-card, .status-panel { display: none !important; }
+  .mobile-top-controls, .mobile-map-actions, .mobile-sheet { display: none !important; }
+}
+
+@media (min-width: 1201px) {
+  .park-app.car-mode .park-map { inset: 0 0 0 390px; }
+  .park-app.car-mode .tablet-panel { position: absolute; z-index: 600; inset: 0 auto 0 0; width: 390px; display: flex; flex-direction: column; padding: 30px 20px 18px; overflow: hidden; color: #edf2ed; background: #172126; border-right: 1px solid #34444a; }
+  .park-app.car-mode .tablet-panel-heading { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; }
+  .park-app.car-mode .tablet-kicker { display: block; color: #a7b8b0; font-size: 13px; font-weight: 800; letter-spacing: .12em; }
+  .park-app.car-mode .tablet-panel-title h1 { margin: 5px 0 0; color: #f3f5f1; font: 800 27px/1.1 var(--app-font-display); }
+  .park-app.car-mode .tablet-result-count { min-width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; color: #9ae0b8; background: #294238; font-size: 20px; font-weight: 800; }
+  .park-app.car-mode .tablet-search { display: none; }
+  .park-app.car-mode .tablet-tools { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; margin: 12px 0 15px; }
+  .park-app.car-mode .tablet-tools button { min-height: 64px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #426152; border-radius: 15px; color: #e6f5eb; background: #234337; font-size: 18px; font-weight: 800; cursor: pointer; }
+  .park-app.car-mode .tablet-tools .tablet-filter-button { color: #edf2ed; border-color: #46545a; background: #27343a; }
+  .park-app.car-mode .tablet-filter-panel { max-height: 49%; overflow-y: auto; margin-bottom: 14px; padding: 13px; border: 1px solid #425159; border-radius: 16px; background: #202d33; }
+  .park-app.car-mode .tablet-filter-heading, .park-app.car-mode .filter-group-title { color: #b6c2c1; font-size: 17px; font-weight: 800; }
+  .park-app.car-mode .tablet-filter-panel .filter-option { min-height: 56px; color: #f1f4f2; font-size: 18px; }
+  .park-app.car-mode .tablet-filter-panel .filter-option.is-active { color: #a4e6bf; background: #2b483b; }
+  .park-app.car-mode .tablet-filter-panel .filter-price-field { font-size: 15px; }
+  .park-app.car-mode .tablet-filter-panel .filter-price-field input { height: 56px; color: #fff; background: #172126; font-size: 19px; }
+  .park-app.car-mode .tablet-filter-panel .filter-check { min-height: 56px; color: #f1f4f2; font-size: 18px; }
+  .park-app.car-mode .tablet-filter-panel .filter-check input { width: 24px; height: 24px; }
+  .park-app.car-mode .tablet-list { min-height: 0; flex: 1; overflow: auto; }
+  .park-app.car-mode .tablet-lot-row { min-height: 104px; display: flex; align-items: center; gap: 14px; padding: 13px 8px; border: 0; border-top: 1px solid #34444a; color: #f1f4f2; background: transparent; text-align: left; cursor: pointer; }
+  .park-app.car-mode .tablet-lot-row:hover, .park-app.car-mode .tablet-lot-row.is-selected { background: #263b34; }
+  .park-app.car-mode .tablet-row-status { width: 52px; height: 52px; flex: 0 0 52px; display: grid; place-items: center; border-radius: 16px; }
+  .park-app.car-mode .tablet-row-status svg { width: 24px; height: 24px; }
+  .park-app.car-mode .tablet-row-copy { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .park-app.car-mode .tablet-row-copy strong { color: #f3f5f1; font-size: 20px; }
+  .park-app.car-mode .tablet-row-copy span { color: #bbc7c4; font-size: 16px; }
+  .park-app.car-mode .tablet-row-spots { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .park-app.car-mode .tablet-row-spots strong { color: #9ae0b8; font-size: 27px; }
+  .park-app.car-mode .tablet-row-spots small, .park-app.car-mode .tablet-row-spots em { color: #c2ceca; font-size: 13px; }
+  .park-app.car-mode .tablet-row-spots em { font-style: normal; }
+  .park-app.car-mode .tablet-selected-lot { position: absolute; z-index: 3; inset: 16px 12px; display: flex; flex-direction: column; justify-content: center; padding: 22px; border: 1px solid #405159; border-radius: 22px; color: #f1f4f2; background: #202d33; box-shadow: 0 18px 50px rgba(0,0,0,.42); }
+  .park-app.car-mode .tablet-selected-heading h2 { color: #fff; font-size: 27px; }
+  .park-app.car-mode .tablet-selected-heading button { width: 48px; height: 48px; color: #e9f0ed; background: #35444a; }
+  .park-app.car-mode .tablet-selected-facts { border-color: #405159; }
+  .park-app.car-mode .tablet-selected-facts strong { color: #fff; font-size: 24px; }
+  .park-app.car-mode .tablet-selected-facts span { color: #c0cbc8; font-size: 15px; }
+  .park-app.car-mode .tablet-navigate-button { min-height: 72px; color: #10241a; background: #9ae0b8; font-size: 21px; }
+  .park-app.car-mode .tablet-empty { padding: 24px 12px; text-align: center; }
+  .park-app.car-mode .tablet-empty strong { color: #f3f5f1; font-size: 20px; }
+  .park-app.car-mode .tablet-empty p { color: #c0cbc8; font-size: 16px; }
+  .park-app.car-mode .tablet-empty button { min-height: 64px; color: #10241a; background: #9ae0b8; font-size: 19px; }
+  .park-app.car-mode .leaflet-tile-pane { filter: invert(.92) hue-rotate(180deg) brightness(.72) contrast(.9) saturate(.62); }
+}
+
+@media (min-width: 768px) and (max-width: 1200px), (min-width: 1201px) {
+  .park-app.car-mode { color-scheme: dark; background: #111a1f; }
+  .park-app.car-mode .tablet-search { display: none; }
+  .park-app.car-mode .tablet-panel { color: #edf2ed; background: #172126; border-color: #34444a; box-shadow: 9px 0 30px rgba(0,0,0,.25); }
+  .park-app.car-mode .tablet-kicker { color: #a7b8b0; font-size: 13px; }
+  .park-app.car-mode .tablet-panel-title h1 { color: #f3f5f1; font-size: 27px; }
+  .park-app.car-mode .tablet-result-count { width: 48px; height: 48px; color: #9ae0b8; background: #294238; font-size: 20px; }
+  .park-app.car-mode .tablet-search { height: 64px; border: 1px solid #405159; border-radius: 16px; color: #a8b8bc; background: #202d33; }
+  .park-app.car-mode .tablet-search { display: none; }
+  .park-app.car-mode .tablet-search input { color: #f3f5f1; font-size: 20px; }
+  .park-app.car-mode .tablet-search input::placeholder { color: #a8b8bc; }
+  .park-app.car-mode .tablet-search button { width: 48px; height: 48px; color: #eff4ef; background: #35444a; }
+  .park-app.car-mode .tablet-tools { gap: 10px; margin: 12px 0 15px; }
+  .park-app.car-mode .tablet-tools button { min-height: 64px; border: 1px solid #426152; border-radius: 15px; color: #e6f5eb; background: #234337; font-size: 18px; }
+  .park-app.car-mode .tablet-tools .tablet-filter-button { color: #edf2ed; border-color: #46545a; background: #27343a; }
+  .park-app.car-mode .tablet-filter-panel { max-height: 49%; border-color: #425159; background: #202d33; }
+  .park-app.car-mode .tablet-filter-heading, .park-app.car-mode .filter-group-title { color: #b6c2c1; font-size: 17px; }
+  .park-app.car-mode .tablet-filter-panel .filter-option { min-height: 56px; color: #f1f4f2; font-size: 18px; }
+  .park-app.car-mode .tablet-filter-panel .filter-option.is-active { color: #a4e6bf; background: #2b483b; }
+  .park-app.car-mode .tablet-filter-panel .filter-price-field { font-size: 15px; }
+  .park-app.car-mode .tablet-filter-panel .filter-price-field input { height: 56px; color: #fff; background: #172126; font-size: 19px; }
+  .park-app.car-mode .tablet-filter-panel .filter-check { min-height: 56px; color: #f1f4f2; font-size: 18px; }
+  .park-app.car-mode .tablet-filter-panel .filter-check input { width: 24px; height: 24px; }
+  .park-app.car-mode .tablet-lot-row { min-height: 104px; gap: 14px; padding: 13px 8px; border-color: #34444a; color: #f1f4f2; }
+  .park-app.car-mode .tablet-lot-row:hover, .park-app.car-mode .tablet-lot-row.is-selected { background: #263b34; }
+  .park-app.car-mode .tablet-row-status { width: 52px; height: 52px; flex-basis: 52px; border-radius: 16px; }
+  .park-app.car-mode .tablet-row-status svg { width: 24px; height: 24px; }
+  .park-app.car-mode .tablet-row-copy strong { color: #f3f5f1; font-size: 20px; }
+  .park-app.car-mode .tablet-row-copy span { color: #bbc7c4; font-size: 16px; }
+  .park-app.car-mode .tablet-row-spots strong { color: #9ae0b8; font-size: 27px; }
+  .park-app.car-mode .tablet-row-spots small, .park-app.car-mode .tablet-row-spots em { color: #c2ceca; font-size: 13px; }
+  .park-app.car-mode .tablet-selected-lot { color: #f1f4f2; border-color: #405159; background: #202d33; box-shadow: 0 18px 50px rgba(0,0,0,.42); }
+  .park-app.car-mode .tablet-selected-heading h2 { color: #fff; font-size: 27px; }
+  .park-app.car-mode .tablet-selected-heading button { width: 48px; height: 48px; color: #e9f0ed; background: #35444a; }
+  .park-app.car-mode .tablet-selected-facts { border-color: #405159; }
+  .park-app.car-mode .tablet-selected-facts strong { color: #fff; font-size: 24px; }
+  .park-app.car-mode .tablet-selected-facts span { color: #c0cbc8; font-size: 15px; }
+  .park-app.car-mode .tablet-navigate-button { min-height: 72px; color: #10241a; background: #9ae0b8; font-size: 21px; }
+  .park-app.car-mode .tablet-empty strong { color: #f3f5f1; font-size: 20px; }
+  .park-app.car-mode .tablet-empty p { color: #c0cbc8; font-size: 16px; }
+  .park-app.car-mode .tablet-empty button { min-height: 64px; font-size: 19px; }
+  .park-app.car-mode .drive-mode-toggle { min-height: 64px; border-color: #53676d; border-radius: 16px; color: #eff4ef; background: #25343a; font-size: 18px; }
+  .park-app.car-mode .desktop-topbar { left: 410px; }
+  .park-app.car-mode .desktop-legend { left: 410px; }
+  .park-app.car-mode .desktop-topbar .brand-panel, .park-app.car-mode .desktop-topbar .language-toggle { color: #f1f4f2; border-color: #35444a; background: #202d33; }
+  .park-app.car-mode .brand-name { color: #f1f4f2; }
+  .park-app.car-mode .brand-subtitle { color: #b3c0bd; }
+  .park-app.car-mode .desktop-topbar .language-toggle button { color: #c5cfcc; }
+  .park-app.car-mode .desktop-topbar .language-toggle button[aria-pressed="true"] { color: #12251b; background: #9ae0b8; }
+  .park-app.car-mode .desktop-legend, .park-app.car-mode .desktop-count { border-color: #39484e; color: #e5ebe8; background: #202d33ed; }
+  .park-app.car-mode .legend-item { color: #e3eae6; font-size: 13px; }
+  .park-app.car-mode .leaflet-control-zoom a { color: #eff4ef !important; background: #202d33 !important; border-color: #405159 !important; }
+  .park-app.car-mode .leaflet-control-attribution { color: #e1e7ed !important; background: #202d33db !important; }
+  .park-app.car-mode .leaflet-map--dark { background: #172126; }
+  .park-app.car-mode .leaflet-map--dark .leaflet-tile-pane { filter: invert(.92) hue-rotate(180deg) brightness(.72) contrast(.9) saturate(.62); }
+  .park-app.car-mode .lot-marker--selected { box-shadow: 0 0 0 5px #9ae0b8, 0 5px 15px #0009; }
+}
+
+@media (max-width: 767px) {
+  .drive-mode-toggle, .tablet-panel { display: none !important; }
+}
+
+/* Keep Stage 2 controls visually connected to the approved iOS-style phone UI. */
+@media (min-width: 768px) and (max-width: 1200px) {
+  .tablet-panel {
+    color: #18212b;
+    background: rgba(248, 250, 253, .96);
+    border-right: 1px solid rgba(255,255,255,.86);
+    box-shadow: 10px 0 32px rgba(21,39,60,.12);
+    backdrop-filter: blur(24px) saturate(1.35);
+  }
+  .tablet-panel-heading { margin-bottom: 16px; }
+  .tablet-kicker { color: #7a8794; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif; }
+  .tablet-panel-title h1 { color: #18212b; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif; }
+  .tablet-result-count { color: #007aff; background: rgba(0,122,255,.1); }
+  .tablet-search {
+    border-color: rgba(255,255,255,.9);
+    border-radius: 16px;
+    color: #758391;
+    background: rgba(255,255,255,.88);
+    box-shadow: 0 6px 22px rgba(21,39,60,.08);
+  }
+  .tablet-search input { color: #18212b; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif; }
+  .tablet-search:focus-within { box-shadow: 0 0 0 3px rgba(0,122,255,.14), 0 6px 22px rgba(21,39,60,.08); }
+  .tablet-tools .tablet-location-button { border-color: #007aff; color: #fff; background: #007aff; box-shadow: 0 5px 16px rgba(0,122,255,.2); }
+  .tablet-tools .tablet-location-button:hover { background: #006ce3; }
+  .tablet-tools .tablet-filter-button { border-color: rgba(255,255,255,.9); color: #425264; background: rgba(255,255,255,.88); }
+  .tablet-tools .tablet-filter-button.is-open { border-color: rgba(0,122,255,.28); color: #007aff; background: rgba(0,122,255,.08); }
+  .tablet-filter-panel { border-color: rgba(255,255,255,.9); background: rgba(255,255,255,.92); box-shadow: 0 8px 24px rgba(21,39,60,.1); backdrop-filter: blur(22px); }
+  .tablet-filter-heading, .tablet-filter-panel .filter-group-title { color: #73808d; }
+  .tablet-filter-panel .filter-option.is-active { color: #007aff; background: rgba(0,122,255,.09); }
+  .tablet-filter-panel .filter-check input { accent-color: #007aff; }
+  .tablet-lot-row { border-color: rgba(35,48,65,.08); color: #18212b; }
+  .tablet-lot-row:hover, .tablet-lot-row.is-selected { background: rgba(0,122,255,.065); }
+  .tablet-row-copy strong { color: #18212b; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif; }
+  .tablet-row-copy span { color: #73808d; }
+  .tablet-row-spots strong { color: #23845f; }
+  .tablet-row-spots small, .tablet-row-spots em { color: #73808d; font-size: 11px; }
+  .tablet-row-spots em { color: #425264; }
+  .tablet-selected-lot { border-color: rgba(255,255,255,.92); color: #18212b; background: rgba(255,255,255,.96); box-shadow: 0 18px 50px rgba(21,39,60,.2); backdrop-filter: blur(26px); }
+  .tablet-selected-heading h2, .tablet-selected-facts strong { color: #18212b; }
+  .tablet-selected-facts span { color: #73808d; }
+  .tablet-selected-heading button { color: #596a7b; background: rgba(112,126,140,.12); }
+  .tablet-navigate-button, .tablet-empty button { color: #fff; background: #007aff; }
+  .desktop-nearby-button, .drive-mode-toggle { border-radius: 16px; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, sans-serif; }
+}
+
+@media (min-width: 768px) {
+  .park-app.car-mode .desktop-legend,
+  .park-app.car-mode .desktop-count { display: none !important; }
+  .park-app.car-mode .tablet-panel-title h1 { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif; }
+  .park-app.car-mode .tablet-kicker { display: none; }
+  .park-app.car-mode .tablet-tools .tablet-location-button { border-color: #007aff; color: #fff; background: #007aff; }
+  .park-app.car-mode .tablet-tools .tablet-location-button:hover { background: #1686ff; }
+  .park-app.car-mode .tablet-tools .tablet-filter-button { border-color: #52616d; color: #edf4fb; background: #26323d; }
+  .park-app.car-mode .tablet-filter-panel .filter-option { min-height: 64px; color: #f1f5fb; font-size: 20px; }
+  .park-app.car-mode .tablet-filter-panel .filter-option.is-active { color: #8ec5ff; background: rgba(0,122,255,.2); }
+  .park-app.car-mode .tablet-filter-panel .filter-group-title,
+  .park-app.car-mode .tablet-filter-heading { color: #bdcbd9; font-size: 20px; }
+  .park-app.car-mode .tablet-filter-panel .filter-price-field { color: #bdcbd9; font-size: 20px; }
+  .park-app.car-mode .tablet-filter-panel .filter-price-field input { height: 64px; border: 1px solid #52616d; color: #fff; background: #172126; font-size: 22px; }
+  .park-app.car-mode .tablet-filter-panel .filter-check { min-height: 64px; color: #f1f5fb; font-size: 20px; }
+  .park-app.car-mode .tablet-filter-panel .filter-check input { width: 28px; height: 28px; }
+  .park-app.car-mode .tablet-row-copy span { color: #bdcbd9; font-size: 20px; }
+  .park-app.car-mode .tablet-row-spots small,
+  .park-app.car-mode .tablet-row-spots em { color: #e0e9f2; font-size: 20px; }
+  .park-app.car-mode .tablet-selected-facts span { color: #d1dce8; font-size: 20px; }
+  .park-app.car-mode .tablet-navigate-button { color: #fff; background: #007aff; }
+  .park-app.car-mode .drive-mode-toggle[aria-pressed="true"] { border-color: #397bbc; color: #fff; background: #145da8; }
+}

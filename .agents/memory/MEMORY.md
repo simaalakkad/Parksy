@@ -1,0 +1,1 @@
+- [Parking app design baseline](parking-app-design.md) — the user approved Stage 1's iOS-style phone UI; extend it without disrupting its behavior.
