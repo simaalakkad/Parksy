@@ -55,6 +55,7 @@ export const ListParkingLotsResponseItem = zod.object({
   "is_covered": zod.boolean(),
   "has_ev_charging": zod.boolean(),
   "updated_at": zod.coerce.date(),
+  "is_demo": zod.boolean().describe('Explicitly marked sample data, never real or imported data.'),
   "distance_km": zod.number().nullish()
 })
 export const ListParkingLotsResponse = zod.array(ListParkingLotsResponseItem)

@@ -197,10 +197,10 @@ button { font: inherit; }
   .leaflet-control-attribution a { color: #007aff !important; }
   .leaflet-control-zoom { display: none !important; }
   .lot-marker { border: 2px solid rgba(255,255,255,.96); box-shadow: 0 3px 10px rgba(19,37,59,.24); }
-  .lot-marker--available { background: #39a879; }
-  .lot-marker--few { background: #e9a33a; }
-  .lot-marker--full { background: #dc6668; }
-  .lot-marker--stale { background: #8d98a3; }
+  .lot-marker--available { background: #16836d; }
+  .lot-marker--few { background: #d77921; }
+  .lot-marker--full { background: #c5423d; }
+  .lot-marker--stale { background: #737b80; }
   .lot-marker--selected { box-shadow: 0 0 0 3px #007aff, 0 5px 14px rgba(19,37,59,.28); }
   .lot-cluster { background: #263b48; }
   .desktop-topbar, .desktop-legend, .desktop-count, .status-panel, .lot-card { display: none !important; }
@@ -367,7 +367,7 @@ button { font: inherit; }
 }
 .drive-mode-toggle[aria-pressed="true"] { color: #f4f5f1; background: #1c282e; border-color: #35454b; }
 
-@media (min-width: 768px) and (max-width: 1200px) {
+@media (min-width: 768px) {
   .park-map { inset: 0 0 0 380px; }
   .tablet-panel {
     position: absolute;
@@ -558,7 +558,7 @@ button { font: inherit; }
 }
 
 /* Keep Stage 2 controls visually connected to the approved iOS-style phone UI. */
-@media (min-width: 768px) and (max-width: 1200px) {
+@media (min-width: 768px) {
   .tablet-panel {
     color: #18212b;
     background: rgba(248, 250, 253, .96);
@@ -624,4 +624,72 @@ button { font: inherit; }
   .park-app.car-mode .tablet-selected-facts span { color: #d1dce8; font-size: 20px; }
   .park-app.car-mode .tablet-navigate-button { color: #fff; background: #007aff; }
   .park-app.car-mode .drive-mode-toggle[aria-pressed="true"] { border-color: #397bbc; color: #fff; background: #145da8; }
+}
+
+.side-panel-toggle, .side-panel-reopen, .side-panel-swipe-edge { display: none; }
+@media (min-width: 768px) {
+  .park-app { --side-panel-width: 380px; }
+  .park-app.car-mode { --side-panel-width: 390px; }
+  .park-app .tablet-panel {
+    width: var(--side-panel-width);
+    transform: translateX(0);
+    visibility: visible;
+    touch-action: pan-y;
+    transition: transform 250ms ease, visibility 0s;
+  }
+  .park-app.side-panel-closed .tablet-panel {
+    transform: translateX(-100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 250ms ease, visibility 0s linear 250ms;
+  }
+  .park-app .park-map { left: var(--side-panel-width); transition: left 250ms ease; }
+  .park-app.side-panel-closed .park-map { left: 0; }
+  .park-app .desktop-topbar { left: calc(var(--side-panel-width) + 24px); transition: left 250ms ease; }
+  .park-app.side-panel-closed .desktop-topbar { left: 88px; }
+  .park-app.side-panel-closed .desktop-legend { left: 88px; transition: left 250ms ease; }
+  .side-panel-toggle, .side-panel-reopen {
+    position: absolute;
+    z-index: 750;
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.8);
+    border-radius: 50%;
+    color: #243b52;
+    background: rgba(255,255,255,.88);
+    box-shadow: 0 4px 20px rgba(21,39,60,.2);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    cursor: pointer;
+  }
+  .side-panel-toggle {
+    left: calc(var(--side-panel-width) - 24px);
+    top: 50%;
+    transform: translateY(-50%);
+    transition: left 250ms ease;
+  }
+  .side-panel-closed .side-panel-toggle { left: 12px; }
+  .side-panel-reopen { top: max(16px, env(safe-area-inset-top)); left: 16px; }
+  .side-panel-toggle:focus-visible, .side-panel-reopen:focus-visible { outline: 3px solid #007aff; outline-offset: 3px; }
+  .side-panel-swipe-edge { position: absolute; z-index: 650; display: block; left: 0; top: 0; bottom: 0; width: 24px; touch-action: none; overscroll-behavior-x: contain; }
+  .park-app.car-mode .side-panel-toggle, .park-app.car-mode .side-panel-reopen {
+    width: 64px; height: 64px; color: #f3f7ff;
+    border-color: rgba(205,224,245,.25); background: rgba(27,39,53,.94);
+  }
+  .park-app.car-mode .side-panel-toggle { left: calc(var(--side-panel-width) - 32px); }
+  .park-app.car-mode.side-panel-closed .side-panel-toggle { left: 12px; }
+  .park-app.car-mode.side-panel-closed .desktop-topbar { left: 96px; }
+}
+@media (min-width: 768px) and (prefers-color-scheme: dark) {
+  .side-panel-toggle, .side-panel-reopen { color: #f3f7ff; border-color: rgba(205,224,245,.2); background: rgba(31,41,54,.92); }
+  .park-app:not(.car-mode) .tablet-panel { color: #f3f5f8; background: rgba(31,40,52,.97); border-color: #364557; }
+  .park-app:not(.car-mode) .tablet-panel-title h1,
+  .park-app:not(.car-mode) .tablet-row-copy strong { color: #f3f5f8; }
+  .park-app:not(.car-mode) .tablet-lot-row { border-color: rgba(225,235,245,.12); }
+  .park-app:not(.car-mode) .tablet-row-copy span,
+  .park-app:not(.car-mode) .tablet-row-spots small,
+  .park-app:not(.car-mode) .tablet-row-spots em { color: #bac7d6; }
 }

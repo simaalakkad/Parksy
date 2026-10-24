@@ -108,6 +108,7 @@ components:
         - is_covered
         - has_ev_charging
         - updated_at
+        - is_demo
       properties:
         id:
           type: integer
@@ -132,6 +133,9 @@ components:
         updated_at:
           type: string
           format: date-time
+        is_demo:
+          type: boolean
+          description: Explicitly marked sample data, never real or imported data.
         distance_km:
           type: ["number", "null"]
 

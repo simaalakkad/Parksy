@@ -100,6 +100,7 @@ router.get("/parking-lots", async (req, res): Promise<void> => {
     hours: lot.hours,
     is_covered: lot.isCovered,
     has_ev_charging: lot.hasEvCharging,
+    is_demo: lot.isDemo,
     updated_at: lot.updatedAt.toISOString(),
     distance_km: distanceKm(origin, [lot.lat, lot.lng]),
   }))

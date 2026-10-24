@@ -21,6 +21,8 @@ export interface ParkingLot {
   is_covered: boolean;
   has_ev_charging: boolean;
   updated_at: string;
+  /** Explicitly marked sample data, never real or imported data. */
+  is_demo: boolean;
   /** @nullable */
   distance_km?: number | null;
 }

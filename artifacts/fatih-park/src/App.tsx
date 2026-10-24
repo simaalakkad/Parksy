@@ -8,6 +8,9 @@ import {
   ArrowUpRight,
   CarFront,
   Clock3,
+  ChevronLeft,
+  ChevronRight,
+  List,
   LocateFixed,
   MapPin,
   Navigation,
@@ -15,7 +18,9 @@ import {
   SlidersHorizontal,
   X,
 } from 'lucide-react';
-import { useListParkingLots, type ListParkingLotsParams, type ParkingLot } from '@workspace/api-client-react';
+import { getListParkingLotsQueryKey, useListParkingLots, type ListParkingLotsParams, type ParkingLot } from '@workspace/api-client-react';
+import { getLotStatus as statusFor } from '@/lib/parking-status';
+import type { LotStatus } from '@/lib/parking-status';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -31,7 +36,6 @@ import './index.css';
 const queryClient = new QueryClient();
 const FATIH_CENTER: [number, number] = [41.0186, 28.9397];
 type Language = 'tr' | 'en';
-type LotStatus = 'available' | 'few' | 'full' | 'stale';
 type StatusFilter = 'all' | LotStatus;
 type Detent = 'collapsed' | 'half' | 'full';
 
@@ -148,10 +152,8 @@ function getUpdatedMinutes(updatedAt: string): number {
   return Math.max(0, Math.floor((Date.now() - timestamp) / 60_000));
 }
 
-function statusFor(lot: ParkingLot): LotStatus {
-  if (getUpdatedMinutes(lot.updated_at) > 60) return 'stale';
-  if (lot.free_spots <= 0) return 'full';
-  return lot.free_spots >= Math.max(5, Math.ceil(lot.capacity * 0.2)) ? 'available' : 'few';
+function displayLotName(lot: ParkingLot): string {
+  return lot.is_demo ? `${lot.name} · DEMO` : lot.name;
 }
 
 function statusLabel(status: LotStatus, language: Language) {
@@ -273,7 +275,7 @@ function ClusteredLotMarkers({
             icon={makeLotIcon(lot, selected)}
             zIndexOffset={selected ? 1000 : 0}
             eventHandlers={{ click: () => onSelectLot(lot) }}
-            title={`${lot.name}: ${lot.free_spots} free spots`}
+            title={`${displayLotName(lot)}: ${lot.free_spots} free spots`}
           />
         );
       })}
@@ -299,6 +301,15 @@ function MapViewport({ target, selectedId }: { target: [number, number] | null; 
   return null;
 }
 
+function MapPanelResize({ open, carMode }: { open: boolean; carMode: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const timer = window.setTimeout(() => map.invalidateSize({ pan: false }), 275);
+    return () => window.clearTimeout(timer);
+  }, [map, open, carMode]);
+  return null;
+}
+
 function ParkingMap() {
   const [language, setLanguage] = useState<Language>('tr');
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -317,9 +328,16 @@ function ParkingMap() {
   const [locationAccepted, setLocationAccepted] = useState(false);
   const [locationConsentOpen, setLocationConsentOpen] = useState(false);
   const [carMode, setCarMode] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(() => {
+    try { return localStorage.getItem('fatih-park-panel-open') !== 'false'; }
+    catch { return true; }
+  });
+  const panelSwipe = useRef<{ x: number; y: number } | null>(null);
+  const suppressPanelSwipeClickUntil = useRef(0);
+  const panelEdge = useRef<HTMLDivElement>(null);
   const [viewportTarget, setViewportTarget] = useState<[number, number] | null>(null);
   const dragStart = useRef<number | null>(null);
-  const [, setClock] = useState(0);
+  const [clock, setClock] = useState(0);
   const text = copy[language];
   const isDarkMap = useMapColorScheme();
   const minPriceValue = priceMin === '' ? undefined : Number(priceMin);
@@ -338,10 +356,12 @@ function ParkingMap() {
     if (openNowOnly) params.open_now = true;
     return params;
   }, [userPosition, minPriceValue, maxPriceValue, priceRangeInvalid, coveredOnly, evOnly, openNowOnly]);
-  const { data: lots, isLoading, isError, refetch } = useListParkingLots(queryParams);
+  const { data: lots, isLoading, isError, refetch } = useListParkingLots(queryParams, {
+    query: { queryKey: getListParkingLotsQueryKey(queryParams), refetchInterval: 60_000 },
+  });
   const visibleLots = useMemo(() => (lots ?? [])
     .filter((lot) => lot.name.toLocaleLowerCase(language === 'tr' ? 'tr-TR' : 'en').includes(search.trim().toLocaleLowerCase(language === 'tr' ? 'tr-TR' : 'en')))
-    .filter((lot) => filter === 'all' || statusFor(lot) === filter), [lots, language, search, filter]);
+    .filter((lot) => filter === 'all' || statusFor(lot) === filter), [lots, language, search, filter, clock]);
   const selectedLot = visibleLots.find((lot) => lot.id === selectedId);
   const filterLabels: Record<StatusFilter, string> = {
     all: text.all as string,
@@ -385,9 +405,82 @@ function ParkingMap() {
 
   const selectLot = (lot: ParkingLot) => {
     setSelectedId(lot.id);
+    if (window.matchMedia('(min-width: 768px)').matches) setPanelOpen(true);
     setViewportTarget([lot.lat, lot.lng]);
     setDetent('full');
   };
+
+  const toggleCarMode = () => {
+    if (!carMode) setPanelOpen(false);
+    else {
+      try { setPanelOpen(localStorage.getItem('fatih-park-panel-open') !== 'false'); }
+      catch { setPanelOpen(true); }
+    }
+    setCarMode((value) => !value);
+  };
+  const startPanelSwipe = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'mouse') return;
+    panelSwipe.current = { x: event.clientX, y: event.clientY };
+  };
+  const updatePanelSwipe = (x: number, y: number, opening: boolean) => {
+    const start = panelSwipe.current;
+    if (!start) return;
+    const dx = x - start.x;
+    const dy = y - start.y;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5
+      && (opening ? dx > 0 : dx < 0)) {
+      panelSwipe.current = null;
+      suppressPanelSwipeClickUntil.current = Date.now() + 500;
+      setPanelOpen(opening);
+    }
+  };
+  const endPanelSwipe = (event: PointerEvent<HTMLElement>, opening: boolean) => {
+    updatePanelSwipe(event.clientX, event.clientY, opening);
+    panelSwipe.current = null;
+  };
+  useEffect(() => {
+    const edge = panelEdge.current;
+    if (!edge) return;
+    // Native non-passive listeners keep a screen-edge swipe from navigating
+    // browser history before the panel can consume the gesture.
+    const start = (event: TouchEvent) => {
+      event.preventDefault();
+      const touch = event.touches[0];
+      if (touch) panelSwipe.current = { x: touch.clientX, y: touch.clientY };
+    };
+    const move = (event: TouchEvent) => {
+      event.preventDefault();
+      const touch = event.touches[0];
+      if (touch) updatePanelSwipe(touch.clientX, touch.clientY, true);
+    };
+    edge.addEventListener('touchstart', start, { passive: false });
+    edge.addEventListener('touchmove', move, { passive: false });
+    return () => {
+      edge.removeEventListener('touchstart', start);
+      edge.removeEventListener('touchmove', move);
+    };
+  }, [panelOpen]);
+  useEffect(() => {
+    if (!carMode) {
+      try { localStorage.setItem('fatih-park-panel-open', String(panelOpen)); }
+      catch { /* Storage can be unavailable in private browsing. */ }
+    }
+  }, [panelOpen, carMode]);
+  useEffect(() => {
+    if (search.trim() && window.matchMedia('(min-width: 768px)').matches) setPanelOpen(true);
+  }, [search]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== '[' || event.repeat || event.ctrlKey || event.metaKey || event.altKey
+        || target?.closest('input, textarea, select, [contenteditable="true"]')
+        || !window.matchMedia('(min-width: 768px)').matches) return;
+      event.preventDefault();
+      setPanelOpen((value) => !value);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const onHandlePointerDown = (event: PointerEvent<HTMLButtonElement>) => {
     dragStart.current = event.clientY;
@@ -412,7 +505,13 @@ function ParkingMap() {
   }, []);
 
   return (
-    <main className={`park-app${carMode ? ' car-mode' : ''}`} data-testid="screen-parking-map">
+    <main className={`park-app ${panelOpen ? 'side-panel-open' : 'side-panel-closed'}${carMode ? ' car-mode' : ''}`} data-testid="screen-parking-map"
+      onClickCapture={(event) => {
+        if (event.detail > 0 && Date.now() < suppressPanelSwipeClickUntil.current) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}>
       <div className="park-map" data-testid="map-fatih">
         <MapContainer
           className={isDarkMap ? 'leaflet-map--dark' : undefined}
@@ -429,6 +528,7 @@ function ParkingMap() {
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <MapViewport target={viewportTarget} selectedId={selectedId} />
+          <MapPanelResize open={panelOpen} carMode={carMode} />
           <ZoomControl position="bottomright" />
           <MapTapHandler onMapTap={() => setSelectedId(null)} />
           <ClusteredLotMarkers lots={visibleLots} selectedId={selectedId} onSelectLot={selectLot} language={language} />
@@ -453,7 +553,7 @@ function ParkingMap() {
         <button className="desktop-nearby-button" type="button" onClick={findNearMe} disabled={locationPending} data-testid="button-find-nearby-desktop">
           <LocateFixed size={18} />{locationPending ? text.locating as string : text.findNearMe as string}
         </button>
-        <button className="drive-mode-toggle" type="button" aria-pressed={carMode} onClick={() => setCarMode((value) => !value)} data-testid="button-toggle-car-mode">
+        <button className="drive-mode-toggle" type="button" aria-pressed={carMode} onClick={toggleCarMode} data-testid="button-toggle-car-mode">
           <CarFront size={19} />{carMode ? text.carModeOn as string : text.carMode as string}
         </button>
         <div className="language-toggle" aria-label="Language">
@@ -472,7 +572,38 @@ function ParkingMap() {
         </div>
       </header>
 
-      <aside className="tablet-panel" aria-label={text.nearest as string} data-testid="tablet-parking-panel">
+      <button
+        className="side-panel-toggle"
+        type="button"
+        onClick={() => setPanelOpen((value) => !value)}
+        aria-label={language === 'tr' ? (panelOpen ? 'Paneli kapat' : 'Paneli aç') : (panelOpen ? 'Close panel' : 'Open panel')}
+        aria-expanded={panelOpen}
+        aria-controls="parking-side-panel"
+        data-testid="button-toggle-panel"
+      >{panelOpen ? <ChevronLeft size={24} /> : <ChevronRight size={24} />}</button>
+      {!panelOpen && <>
+        <button className="side-panel-reopen" type="button" onClick={() => setPanelOpen(true)}
+          aria-label={language === 'tr' ? 'Otopark listesini aç' : 'Open parking list'} aria-controls="parking-side-panel"
+          data-testid="button-reopen-panel"><List size={24} /></button>
+        <div ref={panelEdge} className="side-panel-swipe-edge" aria-hidden="true"
+          onPointerDown={(event) => { startPanelSwipe(event); if (event.pointerType !== 'mouse') event.currentTarget.setPointerCapture(event.pointerId); }}
+          onPointerUp={(event) => endPanelSwipe(event, true)}
+          onPointerCancel={() => { panelSwipe.current = null; }} />
+      </>}
+      <aside id="parking-side-panel" className="tablet-panel" inert={!panelOpen}
+        aria-label={text.nearest as string} data-testid="tablet-parking-panel"
+        onPointerDown={startPanelSwipe} onPointerUp={(event) => endPanelSwipe(event, false)}
+        onPointerMove={(event) => updatePanelSwipe(event.clientX, event.clientY, false)}
+        onPointerCancel={(event) => { if (event.pointerType !== 'touch') panelSwipe.current = null; }}
+        onTouchStart={(event) => {
+          const touch = event.touches[0];
+          if (touch) panelSwipe.current = { x: touch.clientX, y: touch.clientY };
+        }}
+        onTouchMove={(event) => {
+          const touch = event.touches[0];
+          if (touch) updatePanelSwipe(touch.clientX, touch.clientY, false);
+        }}
+        onTouchEnd={() => { panelSwipe.current = null; }}>
         <div className="tablet-panel-heading">
           <div className="tablet-panel-title">
             <span className="tablet-kicker">{language === 'tr' ? 'FATİH · İSTANBUL' : 'FATIH · ISTANBUL'}</span>
@@ -522,7 +653,7 @@ function ParkingMap() {
           <article className="tablet-selected-lot" data-testid={`tablet-card-parking-lot-${selectedLot.id}`}>
             <div className="tablet-selected-heading">
               <span className={`tablet-status-dot tablet-status-dot--${statusFor(selectedLot)}`} />
-              <div><span className="tablet-kicker">{statusLabel(statusFor(selectedLot), language)}</span><h2>{selectedLot.name}</h2></div>
+              <div><span className="tablet-kicker">{statusLabel(statusFor(selectedLot), language)}</span><h2>{displayLotName(selectedLot)}</h2></div>
               <button type="button" aria-label={language === 'tr' ? 'Seçimi kaldır' : 'Clear selection'} onClick={() => setSelectedId(null)} data-testid={`tablet-button-close-lot-${selectedLot.id}`}><X size={18} /></button>
             </div>
             <div className="tablet-selected-facts">
@@ -543,7 +674,7 @@ function ParkingMap() {
           {!isLoading && visibleLots.map((lot) => (
             <button key={lot.id} type="button" className={`tablet-lot-row${selectedId === lot.id ? ' is-selected' : ''}`} onClick={() => selectLot(lot)} data-testid={`tablet-button-select-lot-${lot.id}`}>
               <span className={`tablet-row-status tablet-row-status--${statusFor(lot)}`}><CarFront size={19} /></span>
-              <span className="tablet-row-copy"><strong>{lot.name}</strong><span>{lot.distance_km?.toFixed(1) ?? '—'} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
+              <span className="tablet-row-copy"><strong>{displayLotName(lot)}</strong><span>{lot.distance_km?.toFixed(1) ?? '—'} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
               <span className="tablet-row-spots"><strong>{lot.free_spots}</strong><small>{text.spaces as string}</small><em>{lot.price_per_hour} ₺ / {text.priceUnit as string}</em></span>
             </button>
           ))}
@@ -597,7 +728,7 @@ function ParkingMap() {
         <article className="lot-card" data-testid={`card-parking-lot-${selectedLot.id}`}>
           <div className="card-topline">
             <div>
-              <h2 data-testid={`text-lot-name-${selectedLot.id}`}>{selectedLot.name}</h2>
+              <h2 data-testid={`text-lot-name-${selectedLot.id}`}>{displayLotName(selectedLot)}</h2>
               <div className="card-price">
                 <strong>{selectedLot.price_per_hour}</strong> ₺ / {text.priceUnit as string}
               </div>
@@ -721,7 +852,7 @@ function ParkingMap() {
         <div className="sheet-heading">
           <div>
             <div className="sheet-kicker">{language === 'tr' ? 'FATİH' : 'FATIH'}</div>
-            <h1>{selectedLot ? selectedLot.name : text.nearest as string}</h1>
+            <h1>{selectedLot ? displayLotName(selectedLot) : text.nearest as string}</h1>
           </div>
           <div className="sheet-count">{isLoading ? '—' : visibleLots.length}</div>
         </div>
@@ -754,7 +885,7 @@ function ParkingMap() {
           {!isLoading && visibleLots.map((lot, index) => (
             <button key={lot.id} type="button" className={`mobile-lot-row ${selectedId === lot.id ? 'is-selected' : ''}`} onClick={() => selectLot(lot)} data-testid={`button-select-lot-${lot.id}`}>
               <span className={`mobile-row-status mobile-row-status--${statusFor(lot)}`}><CarFront size={18} /></span>
-               <span className="mobile-row-copy"><strong>{lot.name}</strong><span>{lot.distance_km?.toFixed(1) ?? '—'} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
+               <span className="mobile-row-copy"><strong>{displayLotName(lot)}</strong><span>{lot.distance_km?.toFixed(1) ?? '—'} km <i /> {statusLabel(statusFor(lot), language)}</span></span>
               <span className="mobile-row-spots"><strong>{lot.free_spots}</strong><small>{text.spaces as string}</small></span>
             </button>
           ))}

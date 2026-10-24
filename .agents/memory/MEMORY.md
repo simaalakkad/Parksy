@@ -1,1 +1,2 @@
 - [Parking app design baseline](parking-app-design.md) — the user approved Stage 1's iOS-style phone UI; extend it without disrupting its behavior.
+- [Tablet touch gestures](tablet-touch-gestures.md) — nested scrolling can cancel pointer events; screen-edge swipes can trigger browser history.

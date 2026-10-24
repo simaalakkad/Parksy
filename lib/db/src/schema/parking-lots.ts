@@ -13,9 +13,11 @@ export const parkingLotsTable = pgTable("parking_lots", {
   hours: text("hours").notNull(),
   isCovered: boolean("is_covered").notNull().default(false),
   hasEvCharging: boolean("has_ev_charging").notNull().default(false),
+  isDemo: boolean("is_demo").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertParkingLotSchema = createInsertSchema(parkingLotsTable).omit({ id: true });
+// Regular/imported lots cannot opt into the development demo simulator.
+export const insertParkingLotSchema = createInsertSchema(parkingLotsTable).omit({ id: true, isDemo: true });
 export type InsertParkingLot = z.infer<typeof insertParkingLotSchema>;
 export type ParkingLot = typeof parkingLotsTable.$inferSelect;
