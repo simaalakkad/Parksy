@@ -5,6 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ParkingLotEffectiveStatus } from './parkingLotEffectiveStatus';
+import type { ParkingLotWalkingDistanceStatus } from './parkingLotWalkingDistanceStatus';
+import type { RecentParkingReport } from './recentParkingReport';
 
 export interface ParkingLot {
   id: number;
@@ -22,4 +25,13 @@ export interface ParkingLot {
   is_demo: boolean;
   /** @nullable */
   distance_km?: number | null;
+  district_id: number;
+  district_name_tr: string;
+  district_name_en: string;
+  neighborhood: string;
+  /** @nullable */
+  walking_distance_m?: number | null;
+  walking_distance_status?: ParkingLotWalkingDistanceStatus;
+  effective_status?: ParkingLotEffectiveStatus;
+  recent_reports?: RecentParkingReport[];
 }

@@ -6,23 +6,33 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
+  District,
   HealthStatus,
   ListParkingLotsParams,
-  ParkingLot
+  LotReportingState,
+  ParkingLot,
+  ParkingReportInput,
+  PlaceSearchResult,
+  SearchParkingLotsParams,
+  SearchPlacesParams
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -142,7 +152,7 @@ export const getListParkingLotsUrl = (params?: ListParkingLotsParams,) => {
 }
 
 /**
- * Returns parking lots in Fatih, optionally filtered and sorted by distance from a supplied location.
+ * Returns lots in the visible Istanbul map bounds, filtered and sorted by Haversine distance from the supplied user location or map center.
  * @summary List parking lots
  */
 export const listParkingLots = async (params?: ListParkingLotsParams, options?: Parameters<typeof customFetch>[1]): Promise<ParkingLot[]> => {
@@ -199,6 +209,417 @@ export function useListParkingLots<TData = Awaited<ReturnType<typeof listParking
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListParkingLotsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListDistrictsUrl = () => {
+
+
+
+
+  return `/api/districts`
+}
+
+/**
+ * @summary All 39 Istanbul districts
+ */
+export const listDistricts = async ( options?: Parameters<typeof customFetch>[1]): Promise<District[]> => {
+
+  return customFetch<District[]>(getListDistrictsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDistrictsQueryKey = () => {
+    return [
+    `/api/districts`
+    ] as const;
+    }
+
+
+export const getListDistrictsQueryOptions = <TData = Awaited<ReturnType<typeof listDistricts>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDistricts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDistrictsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDistricts>>> = ({ signal }) => listDistricts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDistricts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDistrictsQueryResult = NonNullable<Awaited<ReturnType<typeof listDistricts>>>
+export type ListDistrictsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All 39 Istanbul districts
+ */
+
+export function useListDistricts<TData = Awaited<ReturnType<typeof listDistricts>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDistricts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDistrictsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSearchPlacesUrl = (params: SearchPlacesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/place-search?${stringifiedParams}` : `/api/place-search`
+}
+
+/**
+ * @summary Istanbul-only Photon places and local districts and neighborhoods
+ */
+export const searchPlaces = async (params: SearchPlacesParams, options?: Parameters<typeof customFetch>[1]): Promise<PlaceSearchResult> => {
+
+  return customFetch<PlaceSearchResult>(getSearchPlacesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchPlacesQueryKey = (params?: SearchPlacesParams,) => {
+    return [
+    `/api/place-search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchPlacesQueryOptions = <TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorType<unknown>>(params: SearchPlacesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchPlacesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPlaces>>> = ({ signal }) => searchPlaces(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchPlacesQueryResult = NonNullable<Awaited<ReturnType<typeof searchPlaces>>>
+export type SearchPlacesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Istanbul-only Photon places and local districts and neighborhoods
+ */
+
+export function useSearchPlaces<TData = Awaited<ReturnType<typeof searchPlaces>>, TError = ErrorType<unknown>>(
+ params: SearchPlacesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchPlacesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLotReportingStatusUrl = (lotId: number,) => {
+
+
+
+
+  return `/api/parking-lots/${lotId}/reports`
+}
+
+/**
+ * @summary Initialize anonymous device and get this lot's reporting cooldown
+ */
+export const getLotReportingStatus = async (lotId: number, options?: Parameters<typeof customFetch>[1]): Promise<LotReportingState> => {
+
+  return customFetch<LotReportingState>(getGetLotReportingStatusUrl(lotId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLotReportingStatusQueryKey = (lotId: number,) => {
+    return [
+    `/api/parking-lots/${lotId}/reports`
+    ] as const;
+    }
+
+
+export const getGetLotReportingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getLotReportingStatus>>, TError = ErrorType<unknown>>(lotId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLotReportingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLotReportingStatusQueryKey(lotId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLotReportingStatus>>> = ({ signal }) => getLotReportingStatus(lotId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: lotId !== null && lotId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLotReportingStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLotReportingStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getLotReportingStatus>>>
+export type GetLotReportingStatusQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Initialize anonymous device and get this lot's reporting cooldown
+ */
+
+export function useGetLotReportingStatus<TData = Awaited<ReturnType<typeof getLotReportingStatus>>, TError = ErrorType<unknown>>(
+ lotId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLotReportingStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLotReportingStatusQueryOptions(lotId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateParkingReportUrl = (lotId: number,) => {
+
+
+
+
+  return `/api/parking-lots/${lotId}/reports`
+}
+
+/**
+ * @summary Report a space or full lot, at most once per device per lot every ten minutes
+ */
+export const createParkingReport = async (lotId: number,
+    parkingReportInput: ParkingReportInput, options?: Parameters<typeof customFetch>[1]): Promise<LotReportingState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LotReportingState>(getCreateParkingReportUrl(lotId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(parkingReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateParkingReportMutationKey = () => ['createParkingReport'] as const;
+
+export const getCreateParkingReportMutationOptions = <TError = ErrorType<LotReportingState>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createParkingReport>>, TError,CreateParkingReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createParkingReport>>, TError,CreateParkingReportMutationVariables, TContext> => {
+
+const mutationKey = getCreateParkingReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createParkingReport>>, CreateParkingReportMutationVariables> = (props) => {
+          const {lotId,data} = props ?? {};
+
+          return  createParkingReport(lotId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateParkingReportMutationResult = NonNullable<Awaited<ReturnType<typeof createParkingReport>>>
+    export type CreateParkingReportMutationBody = BodyType<ParkingReportInput>
+    export type CreateParkingReportMutationError = ErrorType<LotReportingState>
+    export type CreateParkingReportMutationVariables = {lotId: number;data: BodyType<ParkingReportInput>}
+
+    /**
+ * @summary Report a space or full lot, at most once per device per lot every ten minutes
+ */
+export const useCreateParkingReport = <TError = ErrorType<LotReportingState>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createParkingReport>>, TError,CreateParkingReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createParkingReport>>,
+        TError,
+        CreateParkingReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateParkingReportMutationOptions(options));
+    }
+
+export const getSearchParkingLotsUrl = (params: SearchParkingLotsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/parking-search?${stringifiedParams}` : `/api/parking-search`
+}
+
+/**
+ * @summary Search all Istanbul lots, districts and neighborhoods for map navigation
+ */
+export const searchParkingLots = async (params: SearchParkingLotsParams, options?: Parameters<typeof customFetch>[1]): Promise<ParkingLot[]> => {
+
+  return customFetch<ParkingLot[]>(getSearchParkingLotsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchParkingLotsQueryKey = (params?: SearchParkingLotsParams,) => {
+    return [
+    `/api/parking-search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchParkingLotsQueryOptions = <TData = Awaited<ReturnType<typeof searchParkingLots>>, TError = ErrorType<unknown>>(params: SearchParkingLotsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchParkingLots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchParkingLotsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchParkingLots>>> = ({ signal }) => searchParkingLots(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchParkingLots>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchParkingLotsQueryResult = NonNullable<Awaited<ReturnType<typeof searchParkingLots>>>
+export type SearchParkingLotsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Search all Istanbul lots, districts and neighborhoods for map navigation
+ */
+
+export function useSearchParkingLots<TData = Awaited<ReturnType<typeof searchParkingLots>>, TError = ErrorType<unknown>>(
+ params: SearchParkingLotsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchParkingLots>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchParkingLotsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -1,2 +1,5 @@
 - [Parking app design baseline](parking-app-design.md) — the user approved Stage 1's iOS-style phone UI; extend it without disrupting its behavior.
 - [Tablet touch gestures](tablet-touch-gestures.md) — nested scrolling can cancel pointer events; screen-edge swipes can trigger browser history.
+- [Istanbul product scope](istanbul-product-scope.md) — citywide coverage despite the Fatih Park name; expansion must preserve the approved design.
+- [Public place and walking services](place-search-services.md) — free-service policies and truthful walking-distance behavior must be preserved.
+- [Crowdsourced data trust](crowdsourced-data-trust.md) — qualitative reports affect status, not inventory counts; anonymous browser limits are not physical-device proof.

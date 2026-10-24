@@ -6,6 +6,21 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './district';
+export * from './geographicPlace';
+export * from './geographicPlaceKind';
 export * from './healthStatus';
 export * from './listParkingLotsParams';
+export * from './lotReportingState';
+export * from './lotReportingStateEffectiveStatus';
 export * from './parkingLot';
+export * from './parkingLotEffectiveStatus';
+export * from './parkingLotWalkingDistanceStatus';
+export * from './parkingReportInput';
+export * from './parkingReportInputStatus';
+export * from './placeSearchResult';
+export * from './recentParkingReport';
+export * from './recentParkingReportStatus';
+export * from './searchParkingLotsParams';
+export * from './searchPlacesLanguage';
+export * from './searchPlacesParams';

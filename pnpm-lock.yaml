@@ -40,7 +40,7 @@ catalogs:
       specifier: ^2.1.1
       version: 2.1.1
     drizzle-orm:
-      specifier: ^0.45.2
+      specifier: 0.45.4
       version: 0.45.4
     framer-motion:
       specifier: ^12.23.24
@@ -67,7 +67,7 @@ catalogs:
       specifier: ^7.3.2
       version: 7.3.7
     zod:
-      specifier: ^3.25.76
+      specifier: 3.25.76
       version: 3.25.76
 
 overrides:
@@ -181,6 +181,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/parking-status':
+        specifier: workspace:*
+        version: link:../../lib/parking-status
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -199,6 +202,9 @@ importers:
       pino-http:
         specifier: ^10.5.0
         version: 10.5.0
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
     devDependencies:
       '@types/cookie-parser':
         specifier: ^1.4.10
@@ -226,6 +232,10 @@ importers:
         version: 3.1.0
 
   artifacts/fatih-park:
+    dependencies:
+      '@workspace/parking-status':
+        specifier: workspace:*
+        version: link:../../lib/parking-status
     devDependencies:
       '@hookform/resolvers':
         specifier: ^3.10.0
@@ -652,14 +662,25 @@ importers:
         specifier: ^0.31.11
         version: 0.31.11
 
+  lib/parking-status: {}
+
   scripts:
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.9
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../lib/db
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
       tsx:
         specifier: 'catalog:'
         version: 4.23.15
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
 
 packages:
 

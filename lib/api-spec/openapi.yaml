@@ -31,11 +31,18 @@ paths:
       operationId: listParkingLots
       tags: [parking]
       summary: List parking lots
-      description: Returns parking lots in Fatih, optionally filtered and sorted by distance from a supplied location.
+      description: Returns lots in the visible Istanbul map bounds, filtered and sorted by Haversine distance from the supplied user location or map center.
       parameters:
+        - { name: south, in: query, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: north, in: query, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: west, in: query, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: east, in: query, schema: { type: number, minimum: -180, maximum: 180 } }
+        - { name: district_id, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 120 } }
+        - { name: walking, in: query, schema: { type: boolean } }
         - name: lat
           in: query
-          description: Latitude of the user's location. Must be provided with lng.
+          description: Latitude of the user location or map center. Must be provided with lng.
           required: false
           schema:
             type: number
@@ -43,7 +50,7 @@ paths:
             maximum: 90
         - name: lng
           in: query
-          description: Longitude of the user's location. Must be provided with lat.
+          description: Longitude of the user location or map center. Must be provided with lat.
           required: false
           schema:
             type: number
@@ -85,6 +92,86 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ParkingLot"
+  /districts:
+    get:
+      operationId: listDistricts
+      tags: [parking]
+      summary: All 39 Istanbul districts
+      responses:
+        "200":
+          description: Districts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/District"
+  /place-search:
+    get:
+      operationId: searchPlaces
+      tags: [parking]
+      summary: Istanbul-only Photon places and local districts and neighborhoods
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 3, maxLength: 120 } }
+        - { name: language, in: query, schema: { type: string, enum: [tr, en], default: tr } }
+      responses:
+        "200":
+          description: Local areas and geocoded places, with an explicit upstream error if needed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceSearchResult"
+  /parking-lots/{lotId}/reports:
+    parameters:
+      - { name: lotId, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: getLotReportingStatus
+      tags: [parking]
+      summary: Initialize anonymous device and get this lot's reporting cooldown
+      responses:
+        "200":
+          description: Device reporting state and current combined status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LotReportingState" }
+    post:
+      operationId: createParkingReport
+      tags: [parking]
+      summary: Report a space or full lot, at most once per device per lot every ten minutes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ParkingReportInput" }
+      responses:
+        "201":
+          description: Report saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LotReportingState" }
+        "429":
+          description: Device cooldown is still active
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LotReportingState" }
+  /parking-search:
+    get:
+      operationId: searchParkingLots
+      tags: [parking]
+      summary: Search all Istanbul lots, districts and neighborhoods for map navigation
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 120 } }
+        - { name: lat, in: query, schema: { type: number, minimum: -90, maximum: 90 } }
+        - { name: lng, in: query, schema: { type: number, minimum: -180, maximum: 180 } }
+      responses:
+        "200":
+          description: At most 20 nearest matching lots across Istanbul
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParkingLot"
 components:
   schemas:
     HealthStatus:
@@ -109,6 +196,10 @@ components:
         - has_ev_charging
         - updated_at
         - is_demo
+        - district_id
+        - district_name_tr
+        - district_name_en
+        - neighborhood
       properties:
         id:
           type: integer
@@ -138,4 +229,75 @@ components:
           description: Explicitly marked sample data, never real or imported data.
         distance_km:
           type: ["number", "null"]
+        district_id:
+          type: integer
+        district_name_tr:
+          type: string
+        district_name_en:
+          type: string
+        neighborhood:
+          type: string
+        walking_distance_m:
+          type: ["number", "null"]
+        walking_distance_status:
+          type: string
+          enum: [available, unavailable, not_requested]
+        effective_status:
+          type: string
+          enum: [available, few, full, stale]
+        recent_reports:
+          type: array
+          items: { $ref: "#/components/schemas/RecentParkingReport" }
+    ParkingReportInput:
+      type: object
+      required: [status]
+      additionalProperties: false
+      properties:
+        status: { type: string, enum: [available, full] }
+    RecentParkingReport:
+      type: object
+      required: [status, created_at]
+      properties:
+        status: { type: string, enum: [available, full] }
+        created_at: { type: string, format: date-time }
+    LotReportingState:
+      type: object
+      required: [lot_id, server_time, next_allowed_at, effective_status, recent_report_count]
+      properties:
+        lot_id: { type: integer }
+        server_time: { type: string, format: date-time }
+        next_allowed_at: { type: ["string", "null"], format: date-time }
+        effective_status: { type: string, enum: [available, few, full, stale] }
+        recent_report_count: { type: integer }
+    GeographicPlace:
+      type: object
+      required: [id, kind, name, label, lat, lng]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [district, neighborhood, place] }
+        name: { type: string }
+        label: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+    PlaceSearchResult:
+      type: object
+      required: [areas, places, geocoding_error]
+      properties:
+        areas:
+          type: array
+          items: { $ref: "#/components/schemas/GeographicPlace" }
+        places:
+          type: array
+          items: { $ref: "#/components/schemas/GeographicPlace" }
+        geocoding_error:
+          type: ["string", "null"]
+    District:
+      type: object
+      required: [id, name_tr, name_en, center_lat, center_lng]
+      properties:
+        id: { type: integer }
+        name_tr: { type: string }
+        name_en: { type: string }
+        center_lat: { type: number }
+        center_lng: { type: number }
 

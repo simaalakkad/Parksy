@@ -18,9 +18,24 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Returns parking lots in Fatih, optionally filtered and sorted by distance from a supplied location.
+ * Returns lots in the visible Istanbul map bounds, filtered and sorted by Haversine distance from the supplied user location or map center.
  * @summary List parking lots
  */
+export const listParkingLotsQuerySouthMin = -90;
+export const listParkingLotsQuerySouthMax = 90;
+
+export const listParkingLotsQueryNorthMin = -90;
+export const listParkingLotsQueryNorthMax = 90;
+
+export const listParkingLotsQueryWestMin = -180;
+export const listParkingLotsQueryWestMax = 180;
+
+export const listParkingLotsQueryEastMin = -180;
+export const listParkingLotsQueryEastMax = 180;
+
+
+export const listParkingLotsQueryQMax = 120;
+
 export const listParkingLotsQueryLatMin = -90;
 export const listParkingLotsQueryLatMax = 90;
 
@@ -34,8 +49,15 @@ export const listParkingLotsQueryPriceMaxMin = 0;
 
 
 export const ListParkingLotsQueryParams = zod.object({
-  "lat": zod.coerce.number().min(listParkingLotsQueryLatMin).max(listParkingLotsQueryLatMax).optional().describe('Latitude of the user\'s location. Must be provided with lng.'),
-  "lng": zod.coerce.number().min(listParkingLotsQueryLngMin).max(listParkingLotsQueryLngMax).optional().describe('Longitude of the user\'s location. Must be provided with lat.'),
+  "south": zod.coerce.number().min(listParkingLotsQuerySouthMin).max(listParkingLotsQuerySouthMax).optional(),
+  "north": zod.coerce.number().min(listParkingLotsQueryNorthMin).max(listParkingLotsQueryNorthMax).optional(),
+  "west": zod.coerce.number().min(listParkingLotsQueryWestMin).max(listParkingLotsQueryWestMax).optional(),
+  "east": zod.coerce.number().min(listParkingLotsQueryEastMin).max(listParkingLotsQueryEastMax).optional(),
+  "district_id": zod.coerce.number().int().min(1).optional(),
+  "q": zod.coerce.string().max(listParkingLotsQueryQMax).optional(),
+  "walking": zod.coerce.boolean().optional(),
+  "lat": zod.coerce.number().min(listParkingLotsQueryLatMin).max(listParkingLotsQueryLatMax).optional().describe('Latitude of the user location or map center. Must be provided with lng.'),
+  "lng": zod.coerce.number().min(listParkingLotsQueryLngMin).max(listParkingLotsQueryLngMax).optional().describe('Longitude of the user location or map center. Must be provided with lat.'),
   "price_min": zod.coerce.number().min(listParkingLotsQueryPriceMinMin).optional(),
   "price_max": zod.coerce.number().min(listParkingLotsQueryPriceMaxMin).optional(),
   "covered": zod.coerce.boolean().optional(),
@@ -56,8 +78,156 @@ export const ListParkingLotsResponseItem = zod.object({
   "has_ev_charging": zod.boolean(),
   "updated_at": zod.coerce.date(),
   "is_demo": zod.boolean().describe('Explicitly marked sample data, never real or imported data.'),
-  "distance_km": zod.number().nullish()
+  "distance_km": zod.number().nullish(),
+  "district_id": zod.number().int(),
+  "district_name_tr": zod.string(),
+  "district_name_en": zod.string(),
+  "neighborhood": zod.string(),
+  "walking_distance_m": zod.number().nullish(),
+  "walking_distance_status": zod.enum(['available', 'unavailable', 'not_requested']).optional(),
+  "effective_status": zod.enum(['available', 'few', 'full', 'stale']).optional(),
+  "recent_reports": zod.array(zod.object({
+  "status": zod.enum(['available', 'full']),
+  "created_at": zod.coerce.date()
+})).optional()
 })
 export const ListParkingLotsResponse = zod.array(ListParkingLotsResponseItem)
+
+
+/**
+ * @summary All 39 Istanbul districts
+ */
+export const ListDistrictsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name_tr": zod.string(),
+  "name_en": zod.string(),
+  "center_lat": zod.number(),
+  "center_lng": zod.number()
+})
+export const ListDistrictsResponse = zod.array(ListDistrictsResponseItem)
+
+
+/**
+ * @summary Istanbul-only Photon places and local districts and neighborhoods
+ */
+export const searchPlacesQueryQMin = 3;
+export const searchPlacesQueryQMax = 120;
+
+export const searchPlacesQueryLanguageDefault = `tr`;
+
+export const SearchPlacesQueryParams = zod.object({
+  "q": zod.coerce.string().min(searchPlacesQueryQMin).max(searchPlacesQueryQMax),
+  "language": zod.enum(['tr', 'en']).default(searchPlacesQueryLanguageDefault)
+})
+
+export const SearchPlacesResponse = zod.object({
+  "areas": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['district', 'neighborhood', 'place']),
+  "name": zod.string(),
+  "label": zod.string(),
+  "lat": zod.number(),
+  "lng": zod.number()
+})),
+  "places": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['district', 'neighborhood', 'place']),
+  "name": zod.string(),
+  "label": zod.string(),
+  "lat": zod.number(),
+  "lng": zod.number()
+})),
+  "geocoding_error": zod.string().nullable()
+})
+
+
+/**
+ * @summary Initialize anonymous device and get this lot's reporting cooldown
+ */
+
+
+
+export const GetLotReportingStatusParams = zod.object({
+  "lotId": zod.coerce.number().int().min(1)
+})
+
+export const GetLotReportingStatusResponse = zod.object({
+  "lot_id": zod.number().int(),
+  "server_time": zod.coerce.date(),
+  "next_allowed_at": zod.coerce.date().nullable(),
+  "effective_status": zod.enum(['available', 'few', 'full', 'stale']),
+  "recent_report_count": zod.number().int()
+})
+
+
+/**
+ * @summary Report a space or full lot, at most once per device per lot every ten minutes
+ */
+
+
+
+export const CreateParkingReportParams = zod.object({
+  "lotId": zod.coerce.number().int().min(1)
+})
+
+export const CreateParkingReportBody = zod.object({
+  "status": zod.enum(['available', 'full'])
+})
+
+export const CreateParkingReportResponse = zod.object({
+  "lot_id": zod.number().int(),
+  "server_time": zod.coerce.date(),
+  "next_allowed_at": zod.coerce.date().nullable(),
+  "effective_status": zod.enum(['available', 'few', 'full', 'stale']),
+  "recent_report_count": zod.number().int()
+})
+
+
+/**
+ * @summary Search all Istanbul lots, districts and neighborhoods for map navigation
+ */
+export const searchParkingLotsQueryQMax = 120;
+
+export const searchParkingLotsQueryLatMin = -90;
+export const searchParkingLotsQueryLatMax = 90;
+
+export const searchParkingLotsQueryLngMin = -180;
+export const searchParkingLotsQueryLngMax = 180;
+
+
+
+export const SearchParkingLotsQueryParams = zod.object({
+  "q": zod.coerce.string().min(1).max(searchParkingLotsQueryQMax),
+  "lat": zod.coerce.number().min(searchParkingLotsQueryLatMin).max(searchParkingLotsQueryLatMax).optional(),
+  "lng": zod.coerce.number().min(searchParkingLotsQueryLngMin).max(searchParkingLotsQueryLngMax).optional()
+})
+
+export const SearchParkingLotsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "name": zod.string(),
+  "lat": zod.number(),
+  "lng": zod.number(),
+  "capacity": zod.number().int(),
+  "free_spots": zod.number().int(),
+  "price_per_hour": zod.number(),
+  "hours": zod.string(),
+  "is_covered": zod.boolean(),
+  "has_ev_charging": zod.boolean(),
+  "updated_at": zod.coerce.date(),
+  "is_demo": zod.boolean().describe('Explicitly marked sample data, never real or imported data.'),
+  "distance_km": zod.number().nullish(),
+  "district_id": zod.number().int(),
+  "district_name_tr": zod.string(),
+  "district_name_en": zod.string(),
+  "neighborhood": zod.string(),
+  "walking_distance_m": zod.number().nullish(),
+  "walking_distance_status": zod.enum(['available', 'unavailable', 'not_requested']).optional(),
+  "effective_status": zod.enum(['available', 'few', 'full', 'stale']).optional(),
+  "recent_reports": zod.array(zod.object({
+  "status": zod.enum(['available', 'full']),
+  "created_at": zod.coerce.date()
+})).optional()
+})
+export const SearchParkingLotsResponse = zod.array(SearchParkingLotsResponseItem)
 
 

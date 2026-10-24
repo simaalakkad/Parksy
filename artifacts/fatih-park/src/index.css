@@ -205,6 +205,7 @@ button { font: inherit; }
   .lot-cluster { background: #263b48; }
   .desktop-topbar, .desktop-legend, .desktop-count, .status-panel, .lot-card { display: none !important; }
   .mobile-top-controls { position: absolute; z-index: 520; top: max(10px, env(safe-area-inset-top)); left: 12px; right: 12px; }
+  .mobile-top-controls:focus-within { z-index: 800; }
   .mobile-search-row { display: flex; align-items: center; gap: 8px; }
   .mobile-search {
     min-width: 0; height: 54px; flex: 1; display: flex; align-items: center; gap: 10px; padding: 0 15px;
@@ -457,7 +458,7 @@ button { font: inherit; }
   .park-app.car-mode .tablet-kicker { display: block; color: #a7b8b0; font-size: 13px; font-weight: 800; letter-spacing: .12em; }
   .park-app.car-mode .tablet-panel-title h1 { margin: 5px 0 0; color: #f3f5f1; font: 800 27px/1.1 var(--app-font-display); }
   .park-app.car-mode .tablet-result-count { min-width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; color: #9ae0b8; background: #294238; font-size: 20px; font-weight: 800; }
-  .park-app.car-mode .tablet-search { display: none; }
+  .park-app.car-mode .tablet-search { display: flex; min-height: 76px; flex-shrink: 0; }
   .park-app.car-mode .tablet-tools { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; margin: 12px 0 15px; }
   .park-app.car-mode .tablet-tools button { min-height: 64px; display: flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid #426152; border-radius: 15px; color: #e6f5eb; background: #234337; font-size: 18px; font-weight: 800; cursor: pointer; }
   .park-app.car-mode .tablet-tools .tablet-filter-button { color: #edf2ed; border-color: #46545a; background: #27343a; }
@@ -497,13 +498,12 @@ button { font: inherit; }
 
 @media (min-width: 768px) and (max-width: 1200px), (min-width: 1201px) {
   .park-app.car-mode { color-scheme: dark; background: #111a1f; }
-  .park-app.car-mode .tablet-search { display: none; }
+  .park-app.car-mode .tablet-search { display: flex; min-height: 76px; flex-shrink: 0; }
   .park-app.car-mode .tablet-panel { color: #edf2ed; background: #172126; border-color: #34444a; box-shadow: 9px 0 30px rgba(0,0,0,.25); }
   .park-app.car-mode .tablet-kicker { color: #a7b8b0; font-size: 13px; }
   .park-app.car-mode .tablet-panel-title h1 { color: #f3f5f1; font-size: 27px; }
   .park-app.car-mode .tablet-result-count { width: 48px; height: 48px; color: #9ae0b8; background: #294238; font-size: 20px; }
   .park-app.car-mode .tablet-search { height: 64px; border: 1px solid #405159; border-radius: 16px; color: #a8b8bc; background: #202d33; }
-  .park-app.car-mode .tablet-search { display: none; }
   .park-app.car-mode .tablet-search input { color: #f3f5f1; font-size: 20px; }
   .park-app.car-mode .tablet-search input::placeholder { color: #a8b8bc; }
   .park-app.car-mode .tablet-search button { width: 48px; height: 48px; color: #eff4ef; background: #35444a; }
@@ -692,4 +692,116 @@ button { font: inherit; }
   .park-app:not(.car-mode) .tablet-row-copy span,
   .park-app:not(.car-mode) .tablet-row-spots small,
   .park-app:not(.car-mode) .tablet-row-spots em { color: #bac7d6; }
+}
+
+/* Geographic search uses the existing search surface and iOS control palette. */
+.parking-search { position: relative; overflow: visible; }
+.parking-search > input { min-width: 0; }
+.parking-search .district-picker-trigger {
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  width: 44px; min-width: 44px; height: 44px; padding: 0; border: 0;
+  border-radius: 12px; color: #007aff; background: transparent;
+}
+.parking-search-results {
+  position: absolute; z-index: 800; top: calc(100% + 8px); left: 0; right: 0;
+  max-height: min(340px, 45dvh); overflow-y: auto; padding: 6px;
+  border: 1px solid rgba(170,185,205,.25); border-radius: 16px;
+  color: #18212b; background: rgba(255,255,255,.98);
+  box-shadow: 0 12px 32px rgba(21,39,60,.2); backdrop-filter: blur(24px);
+}
+.parking-search-results > button {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 3px; width: 100%; min-height: 52px; height: auto; padding: 9px 12px;
+  border: 0; border-radius: 10px; text-align: left; color: inherit; background: transparent;
+}
+.parking-search-results > button:hover, .parking-search-results > button:focus-visible { background: rgba(0,122,255,.1); }
+.parking-search-results strong { font-size: 14px; line-height: 1.35; }
+.parking-search-results small { color: #687b8d; font-size: 12px; }
+.parking-search-results p { margin: 12px; font-size: 14px; }
+.parking-search-results .district-search-input {
+  display: block; width: 100%; min-height: 44px; height: 44px; padding: 8px 12px;
+  border: 1px solid rgba(128,145,164,.25); border-radius: 10px; color: inherit; background: transparent;
+}
+.park-app.car-mode .parking-search-results { color: #f3f7ff; background: rgba(27,39,53,.98); border-color: #52616d; }
+.park-app.car-mode .parking-search-results > button { min-height: 64px; }
+.park-app.car-mode .parking-search-results strong { font-size: 20px; }
+.park-app.car-mode .parking-search-results small { color: #bdcbd9; font-size: 16px; }
+.park-app.car-mode .parking-search .district-picker-trigger { min-width: 64px; min-height: 64px; color: #8ec5ff; }
+.tablet-lot-row, .mobile-lot-row { content-visibility: auto; contain-intrinsic-size: auto 84px; }
+@media (prefers-color-scheme: dark) {
+  .parking-search-results { color: #f3f7ff; background: rgba(31,41,54,.98); border-color: #364557; }
+  .parking-search-results small { color: #bac7d6; }
+}
+
+.parking-search-results { max-height: min(460px, 58dvh); }
+.parking-search-results > button, .parking-search-results section > button {
+  display: flex; flex-direction: row; align-items: center; gap: 12px;
+  width: 100%; min-height: 52px; padding: 10px 12px; border: 0;
+  border-radius: 12px; text-align: left; color: inherit; background: transparent;
+}
+.parking-search-results section > button:hover, .parking-search-results section > button:focus-visible { background: rgba(0,122,255,.1); }
+.parking-search-results button > span:last-child { min-width: 0; }
+.parking-search-results strong, .parking-search-results small { display: block; white-space: normal; }
+.search-result-icon { flex-shrink: 0; width: 28px; color: #007aff; }
+.search-section-label, .search-section-heading h3 { margin: 12px 10px 5px; font-size: 12px; font-weight: 700; color: #73808d; }
+.search-section-heading { display: flex; justify-content: space-between; align-items: center; }
+.search-section-heading button { min-height: 48px; border: 0; padding: 4px 10px; color: #007aff; background: transparent; font-size: 12px; }
+.parking-search-results .use-location-suggestion { color: #007aff; }
+.search-attribution { margin: 8px 10px; font-size: 10px; color: #73808d; }
+.search-attribution a { color: inherit; }
+.search-retry-button { min-height: 48px; margin: 0 10px; padding: 8px 12px; border: 0; border-radius: 10px; color: #007aff; background: #007aff18; }
+.parking-report-controls { flex-shrink: 0; margin-top: 16px; padding-top: 12px; border-top: 1px solid #d8e1e8; }
+.report-reminder { margin: 0 0 10px; color: #536475; font-size: 13px; line-height: 1.4; }
+.report-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.report-buttons button { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 52px; padding: 10px 8px; border: 1px solid #c5dbd2; border-radius: 14px; background: #eaf7efc9; color: #146c42; font-size: 14px; font-weight: 650; cursor: pointer; backdrop-filter: blur(16px); }
+.report-buttons .report-full { color: #a32d37; background: #fff0f0c9; border-color: #eed0d2; }
+.report-buttons button:disabled { cursor: not-allowed; opacity: .55; }
+.report-buttons button:focus-visible { outline: 3px solid #007aff; outline-offset: 2px; }
+.report-feedback, .report-source-note, .report-error { margin: 7px 0 0; color: #536475; font-size: 12px; line-height: 1.4; }
+.report-feedback span { display: block; }
+.report-error button { min-height: 48px; border: 0; border-radius: 10px; color: #007aff; background: #007aff18; padding: 8px 12px; }
+.tablet-selected-lot { overflow-y: auto; }
+.tablet-selected-lot > * { flex-shrink: 0; }
+.mobile-selected-lot { overflow-y: auto; max-height: 52dvh; }
+.park-app.car-mode .parking-report-controls { border-color: #405159; }
+.park-app.car-mode .report-buttons button { min-height: 64px; font-size: 20px; background: #203f34; color: #b2f3cb; border-color: #527762; }
+.park-app.car-mode .report-buttons .report-full { color: #ffc4c8; background: #472b32; border-color: #85525c; }
+.park-app.car-mode .report-reminder, .park-app.car-mode .report-feedback, .park-app.car-mode .report-source-note { font-size: 17px; color: #c1ced5; }
+.park-app.car-mode .tablet-selected-lot { justify-content: flex-start; }
+.park-app.car-mode .tablet-search { background: rgba(39,52,63,.94); border-color: #4c5c66; color: #eaf1f7; }
+.park-app.car-mode .tablet-search input { font-size: 20px; color: #f4f8ff; }
+.park-app.car-mode .tablet-search input::placeholder { color: #b8c7d2; }
+.park-app.car-mode .tablet-search > button:not(.voice-search-button) { color: #c0d1df; }
+.park-app.car-mode .report-error { color: #c1ced5; font-size: 17px; }
+.park-app.car-mode .report-error button { min-height: 64px; font-size: 18px; }
+@media (prefers-color-scheme: dark) {
+  .parking-report-controls { border-color: #405159; }
+  .report-reminder, .report-feedback, .report-source-note, .report-error { color: #c1ced5; }
+  .report-buttons button { background: #203f34; color: #b2f3cb; border-color: #527762; }
+  .report-buttons .report-full { color: #ffc4c8; background: #472b32; border-color: #85525c; }
+}
+.parking-search .voice-search-button {
+  display: grid; place-items: center; flex-shrink: 0; min-width: 64px; width: 64px; height: 64px;
+  border: 0; border-radius: 16px; color: #fff; background: #007aff;
+}
+.parking-search .voice-search-button.is-listening { color: #fff; background: #d64247; }
+.destination-marker-root { background: transparent; }
+.destination-marker { display: block; width: 18px; height: 18px; margin: 2px; border: 3px solid #fff; border-radius: 50%; background: #007aff; box-shadow: 0 0 0 5px #007aff30, 0 2px 8px #15273c40; }
+.search-this-area {
+  position: absolute; z-index: 550; top: 180px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 10px 18px;
+  border: 1px solid #ffffffb0; border-radius: 28px; color: #007aff;
+  background: #ffffffed; box-shadow: 0 4px 20px #15273c30; backdrop-filter: blur(20px);
+  font: 600 14px/1.25 -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap;
+}
+.walking-warning { margin: 8px 10px; font-size: 12px; line-height: 1.4; color: #8b5b15; }
+.park-app.car-mode .parking-search-results section > button { min-height: 64px; }
+.park-app.car-mode .search-this-area { top: 112px; min-height: 64px; font-size: 20px; color: #8ec5ff; background: #1b2735ed; border-color: #52616d; }
+.park-app.car-mode .search-section-label, .park-app.car-mode .search-section-heading h3 { font-size: 17px; color: #bdcbd9; }
+.park-app.car-mode .walking-warning { color: #f0ca8c; font-size: 18px; }
+@media (max-width: 767px) { .search-this-area { top: 132px; } }
+@media (prefers-color-scheme: dark) {
+  .search-this-area { color: #8ec5ff; background: #1f2936ed; border-color: #364557; }
+  .walking-warning { color: #f0ca8c; }
+  .search-section-label, .search-section-heading h3 { color: #bac7d6; }
 }

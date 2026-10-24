@@ -9,6 +9,38 @@ export interface HealthStatus {
   status: string;
 }
 
+export type ParkingLotWalkingDistanceStatus = typeof ParkingLotWalkingDistanceStatus[keyof typeof ParkingLotWalkingDistanceStatus];
+
+
+export const ParkingLotWalkingDistanceStatus = {
+  available: 'available',
+  unavailable: 'unavailable',
+  not_requested: 'not_requested',
+} as const;
+
+export type ParkingLotEffectiveStatus = typeof ParkingLotEffectiveStatus[keyof typeof ParkingLotEffectiveStatus];
+
+
+export const ParkingLotEffectiveStatus = {
+  available: 'available',
+  few: 'few',
+  full: 'full',
+  stale: 'stale',
+} as const;
+
+export type RecentParkingReportStatus = typeof RecentParkingReportStatus[keyof typeof RecentParkingReportStatus];
+
+
+export const RecentParkingReportStatus = {
+  available: 'available',
+  full: 'full',
+} as const;
+
+export interface RecentParkingReport {
+  status: RecentParkingReportStatus;
+  created_at: string;
+}
+
 export interface ParkingLot {
   id: number;
   name: string;
@@ -25,17 +57,119 @@ export interface ParkingLot {
   is_demo: boolean;
   /** @nullable */
   distance_km?: number | null;
+  district_id: number;
+  district_name_tr: string;
+  district_name_en: string;
+  neighborhood: string;
+  /** @nullable */
+  walking_distance_m?: number | null;
+  walking_distance_status?: ParkingLotWalkingDistanceStatus;
+  effective_status?: ParkingLotEffectiveStatus;
+  recent_reports?: RecentParkingReport[];
+}
+
+export type ParkingReportInputStatus = typeof ParkingReportInputStatus[keyof typeof ParkingReportInputStatus];
+
+
+export const ParkingReportInputStatus = {
+  available: 'available',
+  full: 'full',
+} as const;
+
+export interface ParkingReportInput {
+  status: ParkingReportInputStatus;
+}
+
+export type LotReportingStateEffectiveStatus = typeof LotReportingStateEffectiveStatus[keyof typeof LotReportingStateEffectiveStatus];
+
+
+export const LotReportingStateEffectiveStatus = {
+  available: 'available',
+  few: 'few',
+  full: 'full',
+  stale: 'stale',
+} as const;
+
+export interface LotReportingState {
+  lot_id: number;
+  server_time: string;
+  /** @nullable */
+  next_allowed_at: string | null;
+  effective_status: LotReportingStateEffectiveStatus;
+  recent_report_count: number;
+}
+
+export type GeographicPlaceKind = typeof GeographicPlaceKind[keyof typeof GeographicPlaceKind];
+
+
+export const GeographicPlaceKind = {
+  district: 'district',
+  neighborhood: 'neighborhood',
+  place: 'place',
+} as const;
+
+export interface GeographicPlace {
+  id: string;
+  kind: GeographicPlaceKind;
+  name: string;
+  label: string;
+  lat: number;
+  lng: number;
+}
+
+export interface PlaceSearchResult {
+  areas: GeographicPlace[];
+  places: GeographicPlace[];
+  /** @nullable */
+  geocoding_error: string | null;
+}
+
+export interface District {
+  id: number;
+  name_tr: string;
+  name_en: string;
+  center_lat: number;
+  center_lng: number;
 }
 
 export type ListParkingLotsParams = {
 /**
- * Latitude of the user's location. Must be provided with lng.
+ * @minimum -90
+ * @maximum 90
+ */
+south?: number;
+/**
+ * @minimum -90
+ * @maximum 90
+ */
+north?: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+west?: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+east?: number;
+/**
+ * @minimum 1
+ */
+district_id?: number;
+/**
+ * @maxLength 120
+ */
+q?: string;
+walking?: boolean;
+/**
+ * Latitude of the user location or map center. Must be provided with lng.
  * @minimum -90
  * @maximum 90
  */
 lat?: number;
 /**
- * Longitude of the user's location. Must be provided with lat.
+ * Longitude of the user location or map center. Must be provided with lat.
  * @minimum -180
  * @maximum 180
  */
@@ -51,5 +185,40 @@ price_max?: number;
 covered?: boolean;
 ev_charging?: boolean;
 open_now?: boolean;
+};
+
+export type SearchPlacesParams = {
+/**
+ * @minLength 3
+ * @maxLength 120
+ */
+q: string;
+language?: SearchPlacesLanguage;
+};
+
+export type SearchPlacesLanguage = typeof SearchPlacesLanguage[keyof typeof SearchPlacesLanguage];
+
+
+export const SearchPlacesLanguage = {
+  tr: 'tr',
+  en: 'en',
+} as const;
+
+export type SearchParkingLotsParams = {
+/**
+ * @minLength 1
+ * @maxLength 120
+ */
+q: string;
+/**
+ * @minimum -90
+ * @maximum 90
+ */
+lat?: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+lng?: number;
 };
 

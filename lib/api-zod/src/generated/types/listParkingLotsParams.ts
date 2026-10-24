@@ -8,13 +8,42 @@
 
 export type ListParkingLotsParams = {
 /**
- * Latitude of the user's location. Must be provided with lng.
+ * @minimum -90
+ * @maximum 90
+ */
+south?: number;
+/**
+ * @minimum -90
+ * @maximum 90
+ */
+north?: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+west?: number;
+/**
+ * @minimum -180
+ * @maximum 180
+ */
+east?: number;
+/**
+ * @minimum 1
+ */
+district_id?: number;
+/**
+ * @maxLength 120
+ */
+q?: string;
+walking?: boolean;
+/**
+ * Latitude of the user location or map center. Must be provided with lng.
  * @minimum -90
  * @maximum 90
  */
 lat?: number;
 /**
- * Longitude of the user's location. Must be provided with lat.
+ * Longitude of the user location or map center. Must be provided with lat.
  * @minimum -180
  * @maximum 180
  */

@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "seed:istanbul-demo": "tsx ./src/seed-istanbul-demo.ts",
+    "import:parking": "tsx ./src/import-parking.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "tsx": "catalog:"
+    "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "tsx": "catalog:",
+    "zod": "catalog:"
   }
 }
