@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Fatih Park"
+description = "A mobile-first parking finder for Istanbul's Fatih district. Shows current parking availability on a map, lot details, and one-tap directions, with Turkish and English UI."
+version = "1.0.0"
+id = "artifacts/fatih-park"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18399
+
+[services.development]
+run = "pnpm --filter @workspace/fatih-park run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fatih-park", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/fatih-park/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18399"
+BASE_PATH = "/"

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: parking
+    description: Parking lot availability
 paths:
   /healthz:
     get:
@@ -24,6 +26,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /parking-lots:
+    get:
+      operationId: listParkingLots
+      tags: [parking]
+      summary: List parking lots
+      description: Returns parking lots in the Fatih district.
+      responses:
+        "200":
+          description: Parking lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ParkingLot"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +50,42 @@ components:
           type: string
       required:
         - status
+    ParkingLot:
+      type: object
+      required:
+        - id
+        - name
+        - lat
+        - lng
+        - capacity
+        - free_spots
+        - price_per_hour
+        - hours
+        - is_covered
+        - has_ev_charging
+        - updated_at
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        capacity:
+          type: integer
+        free_spots:
+          type: integer
+        price_per_hour:
+          type: number
+        hours:
+          type: string
+        is_covered:
+          type: boolean
+        has_ev_charging:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
 
